@@ -1,7 +1,6 @@
-# model_rf.py
 """
-Walk-forward Random-Forest baseline with class-balancing and
-trade-cost weighting.
+Walk-forward Random-Forest baseline with class-balancing
+and trade-cost weighting.
 """
 
 import os
@@ -49,16 +48,19 @@ def train_walkforward(df: pd.DataFrame) -> RandomForestClassifier:
         X_test = X_all.iloc[train_end:test_end]
         y_test = y_all[train_end:test_end]
 
-        # ── NEW: down-sample majority class so 0/1 are balanced ─────────
+        # ── balance classes ───────────────────────────────────────
         rng = np.random.default_rng(42)
         idx_0 = np.where(y_train == 0)[0]
         idx_1 = np.where(y_train == 1)[0]
         min_n = min(len(idx_0), len(idx_1))
         keep_idx = np.concatenate(
-            [rng.choice(idx_0, min_n, replace=False), rng.choice(idx_1, min_n, replace=False)]
+            [rng.choice(idx_0, min_n, replace=False),
+             rng.choice(idx_1, min_n, replace=False)]
         )
         X_bal = X_train.iloc[keep_idx]
         y_bal = y_train[keep_idx]
+
+        print(f"Fold {fold}: balanced counts 0→{(y_bal==0).sum()}, 1→{(y_bal==1).sum()}")
 
         model = RandomForestClassifier(**FOREST_PARAMS)
         sample_weight = np.where(y_bal == 1, TRADE_COST_WEIGHT, 1.0)

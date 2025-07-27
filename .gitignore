@@ -1,0 +1,23 @@
+# ─ Python  ────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.log
+*.sqlite3
+
+# ─ IDE / editor junk ─────────────────────
+.vscode/
+.idea/
+.DS_Store
+
+# ─ Environment & credentials ─────────────
+.env
+*.key
+*.pem
+
+# ─ Model artefacts / data ────────────────
+models/
+backtest_output.txt
+data_cache/
+*.zip
+*.pkl

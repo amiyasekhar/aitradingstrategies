@@ -1,0 +1,18 @@
+🔧 Configuration loaded:
+   🔑 BINANCE_API_KEY: IrBdqcPxJZw5fwbg9sG4NHrzidaeMrUUfcRRo3aeNVXI8Q1IbTKZCpQXc6Fq74V3
+   🔒 BINANCE_SECRET:  I3qgyJmMt4Kjvy8x3YncCwMpF5njiefXdumYpIUxlwzkrvy6neDYNhewBtuG89Et
+   📊 Pair: BTC/USDT on 🔴 LIVE
+   🤖 Position size: 0.001 BTC
+   🎯 Thresholds: Buy>0.55, Sell<0.45, Gap>±0.05
+   📁 Model directory: models
+📊 Fetching 30 days of BTC/USDT 1m data…
+🔍 Loading RandomForest model from '/Users/amiyasekhar/UdacityTrading/AI_Assisted_Strategies/models/rf_fold749.joblib'…
+🔧 Configuration loaded:
+   🔑 BINANCE_API_KEY: IrBdqcPxJZw5fwbg9sG4NHrzidaeMrUUfcRRo3aeNVXI8Q1IbTKZCpQXc6Fq74V3
+   🔒 BINANCE_SECRET:  I3qgyJmMt4Kjvy8x3YncCwMpF5njiefXdumYpIUxlwzkrvy6neDYNhewBtuG89Et
+   📊 Pair: BTC/USDT on 🔴 LIVE
+   🤖 Position size: 0.001 BTC
+   🎯 Thresholds: Buy>0.55, Sell<0.45, Gap>±0.05
+   📁 Model directory: models
+📊 Fetching 30 days of BTC/USDT 1m data…
+🔍 Loading RandomForest model from 'models/rf_fold749.joblib'…

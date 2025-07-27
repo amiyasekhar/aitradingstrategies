@@ -29,7 +29,6 @@ if __name__ == "__main__":
     rf = train_walkforward(df_labeled)
 
     # 5) Prepare DataFrame for RL:
-    df_labeled["label"] = df_labeled["y"]
     df_rl = df_labeled.drop(columns=["y", "next_ret"])
 
     # 6) Create Gym environment factory
@@ -42,11 +41,13 @@ if __name__ == "__main__":
     dqn = DQN(
         policy="MlpPolicy",
         env=vec_env,
-        buffer_size=50_000,
         learning_rate=1e-4,
+        buffer_size=100_000,
+        exploration_initial_eps=0.30,
+        exploration_final_eps=0.02,
         gamma=0.99,
         target_update_interval=500,
-        exploration_fraction=0.1,
+        exploration_fraction=0.50,
         verbose=1,
     )
     dqn.learn(total_timesteps=1_500_000)

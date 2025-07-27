@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from typing import List
 
 import ccxt
+from ccxt.base.errors import NetworkError
 import pandas as pd
 import pandas_ta as ta   # pip install pandas_ta
 
@@ -23,38 +24,57 @@ from config import (
 
 # ── patched Binance instance (no private SAPI) ─────────────────────
 def _binance() -> ccxt.binance:
-    ex = ccxt.binance(
-        {
-            "enableRateLimit": True,
-            "apiKey": BINANCE_API_KEY,
-            "secret": BINANCE_SECRET,
-            "options": {"defaultType": "spot"},
-        }
-    )
-    if TESTNET_MODE:
-        ex.set_sandbox_mode(True)
+    """
+    Return a ccxt.binance exchange that:
+    1. Tries main-net public endpoints first.
+    2. On NetworkError (DNS / timeout), falls back to spot-testnet
+       public endpoints automatically.
+    """
+    kwargs = {
+        "enableRateLimit": True,
+        "apiKey": BINANCE_API_KEY,
+        "secret": BINANCE_SECRET,
+        "options": {"defaultType": "spot"},
+    }
+    ex = ccxt.binance(kwargs)
 
-    # block private routes
+    # Block private SAPI routes as before
     ex.has.update({"fetchCurrencies": False, "margin": False, "leveragedTokens": False})
     ex.sapiGetCapitalConfigGetall = lambda params={}: {}
     ex.sapiGetMarginAllPairs = lambda params={}: []
     ex.sapiGetMarginIsolatedAccount = lambda params={}: {}
-
     for k in (
-        "crossMarginPairsData", "isolatedMarginPairsData",
-        "crossMarginSymbolMap", "isolatedMarginSymbolMap",
+        "crossMarginPairsData",
+        "isolatedMarginPairsData",
+        "crossMarginSymbolMap",
+        "isolatedMarginSymbolMap",
     ):
         ex.options.setdefault(k, [])
 
+    # Public-only load_markets()
     def _safe_load(self, reload=False, params={}):
         if not reload and getattr(self, "markets", None):
             return self.markets
         info = self.publicGetExchangeInfo(params)
         mkts = self.parse_markets(info["symbols"])
-        self.markets = self.index_by(mkts, "symbol"); self.symbols = list(self.markets)
+        self.markets = self.index_by(mkts, "symbol")
+        self.symbols = list(self.markets.keys())
         return self.markets
 
     ex.load_markets = types.MethodType(_safe_load, ex)
+
+    # ── attempt main-net; on failure switch to test-net ─────────────
+    try:
+        ex.load_markets()
+    except NetworkError as err:
+        print("⚠️  Main-net unreachable, switching to spot-testnet…")
+        ex.set_sandbox_mode(True)  # flips URLs to testnet host
+        try:
+            ex.load_markets()
+        except Exception:
+            # propagate original error so stack-trace still useful
+            raise err
+
     return ex
 
 
@@ -83,79 +103,71 @@ def fetch_history(days: int = HIST_DAYS) -> pd.DataFrame:
 # ── indicator builder (produces 24 features) ───────────────────────
 def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Return a DataFrame with exactly 25 columns in this order:
+    Returns a DataFrame with exactly 27 columns in this order:
 
-        open, high, low, close, volume,
-        rsi,
-        macd, macd_signal, macd_hist,
-        atr,
-        tema,
-        bb_upper, bb_middle, bb_lower,
-        vwma,
-        sma, ema, hma,
-        stoch_k, stoch_d,
-        mom, adx,
-        roc, cci,
-        obv            ← NEW (25th feature)
+        open, high, low, close, volume,               #  5
+        rsi,                                           #  6
+        macd, macd_signal, macd_hist,                  #  9
+        atr,                                           # 10
+        tema,                                          # 11
+        bb_upper, bb_middle, bb_lower,                 # 14
+        vwma,                                          # 15
+        sma, ema, hma,                                 # 18
+        stoch_k, stoch_d,                              # 20
+        mom, adx,                                      # 22
+        roc, cci,                                      # 24
+        obv,                                           # 25
+        willr,                                         # 26
+        mfi                                            # 27  ← NEW
     """
 
-    def first_col(cols, prefix: str):
+    def first_col(cols, prefix):
         for c in cols:
             if c.lower().startswith(prefix.lower()):
                 return c
-        raise KeyError(f"missing indicator column starting with '{prefix}'")
+        raise KeyError(f"missing indicator starting with '{prefix}'")
 
     out = df.copy()
 
-    # 1  RSI
+    # 1 – basic TA
     out["rsi"] = ta.rsi(out["close"], length=14)
 
-    # 2-4  MACD
     macd = ta.macd(out["close"])
     out["macd"]        = macd[first_col(macd.columns, "MACD_")]
     out["macd_signal"] = macd[first_col(macd.columns, "MACDs")]
     out["macd_hist"]   = macd[first_col(macd.columns, "MACDh")]
 
-    # 5  ATR
-    out["atr"] = ta.atr(out["high"], out["low"], out["close"], length=14)
-
-    # 6  TEMA
+    out["atr"]  = ta.atr(out["high"], out["low"], out["close"], length=14)
     out["tema"] = ta.tema(out["close"], length=30)
 
-    # 7-9  Bollinger Bands
     bb = ta.bbands(out["close"], length=20, std=2)
     out["bb_upper"]  = bb[first_col(bb.columns, "BBU_")]
     out["bb_middle"] = bb[first_col(bb.columns, "BBM_")]
     out["bb_lower"]  = bb[first_col(bb.columns, "BBL_")]
 
-    # 10  VWMA
     out["vwma"] = ta.vwma(out["close"], out["volume"], length=20)
 
-    # 11-13  Moving averages
     out["sma"] = ta.sma(out["close"], length=20)
     out["ema"] = ta.ema(out["close"], length=20)
     out["hma"] = ta.hma(out["close"], length=20)
 
-    # 14-15  Stochastic
     stoch = ta.stoch(out["high"], out["low"], out["close"])
     out["stoch_k"] = stoch[first_col(stoch.columns, "STOCHk")]
     out["stoch_d"] = stoch[first_col(stoch.columns, "STOCHd")]
 
-    # 16  Momentum
     out["mom"] = ta.mom(out["close"], length=10)
-
-    # 17  ADX
-    adx = ta.adx(out["high"], out["low"], out["close"])
+    adx        = ta.adx(out["high"], out["low"], out["close"])
     out["adx"] = adx[first_col(adx.columns, "ADX_")]
 
-    # 18-19  ROC & CCI
-    out["roc"] = ta.roc(out["close"], length=10)
-    out["cci"] = ta.cci(out["high"], out["low"], out["close"], length=20)
+    out["roc"]  = ta.roc(out["close"], length=10)
+    out["cci"]  = ta.cci(out["high"], out["low"], out["close"], length=20)
+    out["obv"]  = ta.obv(out["close"], out["volume"])
+    out["willr"] = ta.willr(out["high"], out["low"], out["close"], length=14)
 
-    # 20  OBV  ← missing feature added
-    out["obv"] = ta.obv(out["close"], out["volume"])
+    # 27 – Money Flow Index
+    out["mfi"] = ta.mfi(out["high"], out["low"], out["close"], out["volume"], length=14)
 
-    # Clean-up
+    # drop warm-up NaNs
     out.dropna(inplace=True)
 
     col_order = [
@@ -171,7 +183,9 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
         "mom","adx",
         "roc","cci",
         "obv",
+        "willr",
+        "mfi",
     ]
     out = out[col_order]
-    assert out.shape[1] == 25, f"Expected 25 features, got {out.shape[1]}"
+    assert out.shape[1] == 27, f"Expected 27 features, got {out.shape[1]}"
     return out

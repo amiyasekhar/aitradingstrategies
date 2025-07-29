@@ -1,6 +1,14 @@
 """
-Walk-forward Random-Forest baseline with class-balancing
-and trade-cost weighting.
+Walk-forward Random-Forest with edge-weighted samples,
+per-fold threshold optimisation, and auto-selection of
+the best fold.
+
+Outputs
+-------
+models/rf_foldN.joblib       : one model per fold
+models/rf_thresholds.json    : tuned thresholds per fold
+models/rf_folds.csv          : table of fold, auc, eq, thr_up, gap
+models/rf_best.joblib        : symlink to the highest-eq fold
 """
 
 import os
@@ -9,15 +17,15 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score
-from config import (
-    HIST_DAYS,
-    FOREST_PARAMS,
-    WALKFORWARD,
-    MODEL_DIR,
-    TRADE_COST_WEIGHT,
-)
+
+from utils.threshold_search import best_thresholds, save_threshold
+from config import HIST_DAYS, FOREST_PARAMS, WALKFORWARD, MODEL_DIR, FEE, SLIPPAGE
+
+# Use a realistic round-trip cost from the config file
+COST_RT = 2 * (FEE + SLIPPAGE)
 
 
+# ────────────────────────────────────────────────────────────────────
 def make_labels(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["next_ret"] = df["close"].pct_change().shift(-1)
@@ -25,63 +33,87 @@ def make_labels(df: pd.DataFrame) -> pd.DataFrame:
     return df.dropna().reset_index(drop=True)
 
 
+# ────────────────────────────────────────────────────────────────────
 def train_walkforward(df: pd.DataFrame) -> RandomForestClassifier:
     os.makedirs(MODEL_DIR, exist_ok=True)
 
     X_all = df.select_dtypes(include=[np.number]).drop(columns=["next_ret", "y"])
     y_all = df["y"].values
-    times = df.index
 
     final_model = None
-    results = []
+    results: list[dict] = []
 
     fold = 0
     while True:
-        train_start = fold * WALKFORWARD
-        train_end = train_start + HIST_DAYS
-        test_end = train_end + WALKFORWARD
-        if test_end > len(df):
+        tr0 = fold * WALKFORWARD
+        tr1 = tr0 + HIST_DAYS
+        te1 = tr1 + WALKFORWARD
+        if te1 > len(df):
             break
 
-        X_train = X_all.iloc[train_start:train_end]
-        y_train = y_all[train_start:train_end]
-        X_test = X_all.iloc[train_end:test_end]
-        y_test = y_all[train_end:test_end]
+        X_tr, y_tr = X_all.iloc[tr0:tr1], y_all[tr0:tr1]
+        X_te, y_te = X_all.iloc[tr1:te1], y_all[tr1:te1]
 
-        # ── balance classes ───────────────────────────────────────
-        rng = np.random.default_rng(42)
-        idx_0 = np.where(y_train == 0)[0]
-        idx_1 = np.where(y_train == 1)[0]
-        min_n = min(len(idx_0), len(idx_1))
-        keep_idx = np.concatenate(
-            [rng.choice(idx_0, min_n, replace=False),
-             rng.choice(idx_1, min_n, replace=False)]
+        # ── balance classes ───────────────────────────────────────────
+        rng = np.random.default_rng(42 + fold)
+        idx_0, idx_1 = np.where(y_tr == 0)[0], np.where(y_tr == 1)[0]
+        n = min(len(idx_0), len(idx_1))
+        keep = np.concatenate(
+            [rng.choice(idx_0, n, replace=False),
+             rng.choice(idx_1, n, replace=False)]
         )
-        X_bal = X_train.iloc[keep_idx]
-        y_bal = y_train[keep_idx]
+        X_b, y_b = X_tr.iloc[keep], y_tr[keep]
+        print(f"Fold {fold}: balanced counts 0→{(y_b == 0).sum()}, "
+              f"1→{(y_b == 1).sum()}")
 
-        print(f"Fold {fold}: balanced counts 0→{(y_bal==0).sum()}, 1→{(y_bal==1).sum()}")
+        # ── edge-weighted sample weight (≥1e-6) ───────────────────────
+        edge = np.abs(df.loc[X_b.index, "next_ret"]) - COST_RT
+        sample_weight = np.maximum(edge, 1e-6)
 
-        model = RandomForestClassifier(**FOREST_PARAMS)
-        sample_weight = np.where(y_bal == 1, TRADE_COST_WEIGHT, 1.0)
-        model.fit(X_bal, y_bal, sample_weight=sample_weight)
+        # ── fit RF ────────────────────────────────────────────────────
+        rf = RandomForestClassifier(**FOREST_PARAMS)
+        rf.fit(X_b, y_b, sample_weight=sample_weight)
 
-        y_prob = model.predict_proba(X_test)[:, 1]
-        auc = roc_auc_score(y_test, y_prob)
+        # ── threshold search on validation slice ─────────────────────
+        p_val = rf.predict_proba(X_te)[:, 1]
+        best_t, best_eq = best_thresholds(
+            p_val, df["close"].iloc[tr1:te1], COST_RT
+        )
+        save_threshold(f"rf_fold{fold}", best_t, MODEL_DIR)
+
+        # robust AUC (NaNs → 0.5; skip single-class)
+        if np.isnan(p_val).any():
+            p_val = np.nan_to_num(p_val, nan=0.5)
+        auc = (np.nan if len(np.unique(y_te)) < 2
+               else roc_auc_score(y_te, p_val))
+
         results.append(
-            {
-                "fold": fold,
-                "train_start": times[train_start],
-                "train_end": times[train_end - 1],
-                "test_end": times[test_end - 1],
-                "auc": auc,
-            }
+            dict(fold=fold, auc=auc, eq=best_eq,
+                 thr_up=best_t[0], gap=best_t[2])
         )
 
-        joblib.dump(model, os.path.join(MODEL_DIR, f"rf_fold{fold}.joblib"))
-        final_model = model
+        mdl_path = os.path.join(MODEL_DIR, f"rf_fold{fold}.joblib")
+        joblib.dump(rf, mdl_path)
+        final_model = rf
         fold += 1
 
-    print("\nWalk-forward AUC per fold:")
-    print(pd.DataFrame(results).to_string(index=False))
+    # ── save fold summary & best-eq symlink ──────────────────────────
+    summary = pd.DataFrame(results)
+    summary_path = os.path.join(MODEL_DIR, "rf_folds.csv")
+    summary.to_csv(summary_path, index=False)
+
+    best_row  = summary.loc[summary["eq"].idxmax()]
+    best_fold = int(best_row["fold"])
+    best_src  = os.path.join(MODEL_DIR, f"rf_fold{best_fold}.joblib")
+    best_link = os.path.join(MODEL_DIR, "rf_best.joblib")
+    try:
+        os.remove(best_link)
+    except FileNotFoundError:
+        pass
+    os.symlink(best_src, best_link)
+    print(f"\n⭐ Best fold {best_fold} (eq {best_row['eq']:.2f}) "
+          f"→ rf_best.joblib")
+
+    print("\nWalk-forward results:")
+    print(summary.to_string(index=False))
     return final_model

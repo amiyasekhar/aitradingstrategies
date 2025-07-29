@@ -1,0 +1,7 @@
+# Model  : rf_fold1212
+# Slice  : 2025-06-29 → 2025-07-29  (31 days)
+# Thresh : up=0.63  dn=0.37  gap=0.05
+Total return   : -14.03%
+Equity multiple: 0.86
+Sharpe ratio   : -2.32
+Trades / Win%  : 138 | 46.46%

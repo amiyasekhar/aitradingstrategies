@@ -1,0 +1,17 @@
+🔧 Configuration loaded:
+   🔑 BINANCE_API_KEY: IrBdqcPxJZw5fwbg9sG4NHrzidaeMrUUfcRRo3aeNVXI8Q1IbTKZCpQXc6Fq74V3
+   🔒 BINANCE_SECRET:  I3qgyJmMt4Kjvy8x3YncCwMpF5njiefXdumYpIUxlwzkrvy6neDYNhewBtuG89Et
+   📊 Pair: BTC/USDT on 🔴 LIVE
+   🤖 Position size: 0.001 BTC
+   🎯 Thresholds: Buy>0.55, Sell<0.45, Gap>±0.05
+   📁 Model directory: models
+🔍  Loading RandomForest model from “models/rf_fold1088.joblib”…
+   → thresholds   up=0.69  dn=0.31  gap=0.05
+
+🕒  Testing period: 2025-06-29 22:30:00+00:00 → 2025-07-29 21:02:00+00:00
+💰  Total return: +20.40%
+📉  Buy-and-hold BTC: +8.64%
+📉  Trades taken: 67  |  Win rate: 47.65 %
+📊  Sharpe: 3.41
+🔍  Accuracy: 6.30%  |  Macro-P 2.10%  R 33.33%
+📈  Equity multiple: 1.20 (boot μ 1.21 σ 0.10 VaR95 1.05)

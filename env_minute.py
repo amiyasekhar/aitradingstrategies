@@ -81,15 +81,12 @@ class MinuteTradingEnv(gym.Env):
         ret = (price - prev_price) / prev_price
         pnl = self.position * ret - trade_cost
 
-        # ── penalties & bonus ─────────────────────────────
-        idle_penalty    = 0.00001 if action == 0 else 0.0           # 0.1 bp / Hold
-        holding_penalty = 0.000005 * abs(self.position)             # 0.05 bp / min
-        pnl -= holding_penalty
-
+        # ── penalties removed from PnL calculation ────────
         self.equity *= 1 + pnl
         self.max_equity = max(self.max_equity, self.equity)
 
-        reward = np.clip(pnl, -0.01, 0.01) * REWARD_SCALE - idle_penalty
+        # ── reward no longer includes idle_penalty ───────
+        reward = np.clip(pnl, -0.01, 0.01) * REWARD_SCALE
 
         if opened_or_closed and self.equity > self.entry_equity:
             self.wins += 1

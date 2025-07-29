@@ -1,7 +1,7 @@
 # Model  : rf_fold240
 # Slice  : 2025-06-29 → 2025-07-29  (31 days)
 # Thresh : up=0.55  dn=0.45  gap=0.08
-Total return   : -126.41%
+Total return   : -126.20%
 Equity multiple: -0.26
-Sharpe ratio   : -18.46
-Trades / Win%  : 615 | 46.51%
+Sharpe ratio   : -18.44
+Trades / Win%  : 615 | 46.52%

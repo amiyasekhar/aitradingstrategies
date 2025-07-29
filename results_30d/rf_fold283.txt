@@ -3,5 +3,5 @@
 # Thresh : up=0.67  dn=0.33  gap=0.05
 Total return   : -10.20%
 Equity multiple: 0.90
-Sharpe ratio   : -1.74
+Sharpe ratio   : -1.75
 Trades / Win%  : 20 | 46.49%

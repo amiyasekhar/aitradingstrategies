@@ -22,3 +22,6 @@ backtest_output_rf.txt
 data_cache/
 *.zip
 *.pkl
+results_30d/
+rf_30d_summary.csv
+*.parquet

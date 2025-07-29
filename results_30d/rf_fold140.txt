@@ -4,4 +4,4 @@
 Total return   : -2.47%
 Equity multiple: 0.98
 Sharpe ratio   : -0.42
-Trades / Win%  : 24 | 46.78%
+Trades / Win%  : 24 | 46.77%

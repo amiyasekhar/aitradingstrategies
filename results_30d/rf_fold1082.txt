@@ -1,7 +1,7 @@
 # Model  : rf_fold1082
 # Slice  : 2025-06-29 → 2025-07-29  (31 days)
 # Thresh : up=0.55  dn=0.45  gap=0.05
-Total return   : -319.30%
-Equity multiple: -2.19
-Sharpe ratio   : -39.79
-Trades / Win%  : 1473 | 46.47%
+Total return   : -317.79%
+Equity multiple: -2.18
+Sharpe ratio   : -39.63
+Trades / Win%  : 1469 | 46.51%

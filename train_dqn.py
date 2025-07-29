@@ -11,37 +11,48 @@ from stable_baselines3 import DQN
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.callbacks import BaseCallback
 
-from data_engineering import fetch_history, add_indicators
-from model_rf         import make_labels, train_walkforward
+from data_engineering import add_indicators
+from model_rf         import make_labels, train_single_model
 from env_minute       import MinuteTradingEnv
-from config           import HIST_DAYS
 
 if __name__ == "__main__":
-    # 1) Fetch historical data
-    raw = fetch_history(HIST_DAYS)
+    # 1) Load the full historical data from the local file
+    print("Loading full historical data from local file...")
+    try:
+        raw_full = pd.read_parquet("full_history.parquet")
+    except FileNotFoundError:
+        print("❌ Error: full_history.parquet not found.")
+        print("Please run the download_data.py script first.")
+        exit()
 
-    # 2) Compute technical indicators (fills NaNs)
+    # 2) Define the training period and slice the data
+    TRAIN_START_DATE = "2020-01-01"
+    TRAIN_END_DATE = "2025-01-31"
+    start_ts = pd.to_datetime(TRAIN_START_DATE, utc=True)
+    end_ts = pd.to_datetime(TRAIN_END_DATE, utc=True)
+    
+    raw = raw_full.loc[start_ts:end_ts]
+    print(f"Using training slice: {len(raw)} rows from {raw.index.min()} to {raw.index.max()}")
+
+    # 3) Compute technical indicators on the training slice
     df = add_indicators(raw)
 
-    # 3) Create labels DataFrame
+    # 4) Create labels DataFrame
     df_labeled = make_labels(df)
 
-    # 4) Train Random Forest with walk-forward CV
-    rf = train_walkforward(df_labeled)
+    # 5) Train a single Random Forest master model
+    rf = train_single_model(df_labeled)
 
-    # 5) Prepare DataFrame for RL (features only, 27 cols)
+    # 6) Prepare DataFrame for RL
     df_rl = df_labeled.drop(columns=["y", "next_ret"])
 
-    # 6) Create Gym environment factory
+    # 7) Create Gym environment factory
     def make_env():
         return MinuteTradingEnv(df_rl)
 
     vec_env = DummyVecEnv([make_env])
 
-    # sanity-check feature shape
-    print("🔍 Env feature shape =", vec_env.observation_space.shape)   # expect (60, 27)
-
-    # 7) Train DQN agent
+    # 8) Train DQN agent
     dqn = DQN(
         policy="MlpPolicy",
         env=vec_env,
@@ -49,13 +60,13 @@ if __name__ == "__main__":
         buffer_size=100_000,
         exploration_initial_eps=0.30,
         exploration_final_eps=0.02,
-        exploration_fraction=0.80,          # slower decay
+        exploration_fraction=0.80,
         gamma=0.99,
         target_update_interval=500,
         verbose=1,
     )
 
-    # ── live debug callbacks ────────────────────────────────────────
+    # --- Live debug callbacks ---
     class RewardProbe(BaseCallback):
         def _on_step(self):
             if self.num_timesteps % 5_000 == 0:
@@ -75,6 +86,7 @@ if __name__ == "__main__":
         callback=[RewardProbe(), EpsilonTracker()],
     )
 
-    # 8) Save models
-    dqn.save("models/dqn_minute")
-    joblib.dump(rf, "models/rf_minute.pkl")
+    # 9) Save models
+    dqn.save("models/dqn_master")
+    # The RF model is already saved by train_single_model
+    print("✅ DQN master model saved to models/dqn_master")

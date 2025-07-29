@@ -12,7 +12,7 @@ run_backtest.py – back-tests one model.
 from __future__ import annotations
 import os, sys, argparse, json, datetime as dt, joblib
 from pathlib import Path
-from config import (HIST_DAYS, PAIR, MODEL_DIR, THRESH_UP, THRESH_DN, 
+from config import (HIST_DAYS, PAIR, MODEL_DIR, THRESH_UP, THRESH_DN,
                     PROBA_GAP, print_config, FEE, SLIPPAGE)
 import numpy as np, pandas as pd
 
@@ -21,8 +21,6 @@ from env_minute      import MinuteTradingEnv
 from utils.metrics   import (bootstrap_equity, compute_sharpe_ratio,
                              compute_signal_classification_metrics)
 from utils.threshold_search import load_threshold
-from config import (HIST_DAYS, PAIR, MODEL_DIR,
-                    THRESH_UP, THRESH_DN, PROBA_GAP, print_config)
 
 
 # ────────────────────────────────────────────────────────────── helper ──
@@ -52,8 +50,6 @@ def _slice(df: pd.DataFrame,
 
 
 # ─────────────────────────────────────────────── vectorised RF back-test ──
-# ──────────────────────────────────────────────────────────────────────
-# ─────────────────── fast, faithful evaluator ────────────────────────
 def _quick_backtest_rf(rf, df: pd.DataFrame, price: pd.Series,
                        up: float, dn: float, gap: float) -> dict:
     """
@@ -72,11 +68,11 @@ def _quick_backtest_rf(rf, df: pd.DataFrame, price: pd.Series,
 
     # --- ADDED: Realistic Cost Calculation ---
     pos_change = np.abs(np.diff(np.concatenate(([0.], pos))))
-    trade_cost = FEE + SLIPPAGE  # Get costs from config
+    trade_cost = FEE + SLIPPAGE
     costs = pos_change * trade_cost
     pnl = pos * rets - costs
     # --- END ---
-    
+
     equity = 1 + np.cumsum(pnl)
     equity_s = pd.Series(equity, index=df.index)
 
@@ -91,41 +87,49 @@ def _quick_backtest_rf(rf, df: pd.DataFrame, price: pd.Series,
         "trades"      : int((pos_change > 0).sum()),
         "win_rate"    : win_rate,
         "equity_s"    : equity_s,
+        "signal"      : signal,
     }
-# ──────────────────────────────────────────────────────────────────────
 
 
 # ──────────────────────────────────────────────────────────── main ──
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", help="path/to/model.joblib | .zip")
-    ap.add_argument("--start")          # YYYY-MM-DD  inclusive
-    ap.add_argument("--end")            # YYYY-MM-DD  exclusive
-    ap.add_argument("--days", type=int) # alternative: last N days
-    ap.add_argument("--fast", action="store_true",
-                    help="vectorised RF path (≈100× faster)")
+    ap.add_argument("--start")
+    ap.add_argument("--end")
+    ap.add_argument("--days", type=int)
+    ap.add_argument("--fast", action="store_true", help="vectorised RF path (≈100× faster)")
     args = ap.parse_args()
 
     print_config()
 
-    # 1) Load raw data first, then slice to requested window
-    raw = fetch_history(HIST_DAYS)
-    raw = _slice(raw,
-                 dt.datetime.strptime(args.start, "%Y-%m-%d").date()
-                 if args.start else None,
-                 dt.datetime.strptime(args.end,   "%Y-%m-%d").date()
-                 if args.end   else None,
+    # 1) Load the full historical data from the local file
+    print("Loading full historical data from local file...")
+    try:
+        raw_full = pd.read_parquet("full_history.parquet")
+    except FileNotFoundError:
+        print("❌ Error: full_history.parquet not found.")
+        print("Please run the download_data.py script first.")
+        return
+
+    # 2) Slice the data to the requested window
+    raw = _slice(raw_full,
+                 dt.datetime.strptime(args.start, "%Y-%m-%d").date() if args.start else None,
+                 dt.datetime.strptime(args.end,   "%Y-%m-%d").date() if args.end   else None,
                  args.days)
 
-    # 2) Load model / thresholds
+    print(f"Testing on data slice: {len(raw)} rows from {raw.index.min()} to {raw.index.max()}")
+    if len(raw) == 0:
+        print("❌ Error: No data found for the specified date range. Exiting.")
+        return
+
+    # 3) Load model / thresholds
     mdl_path = _find_model(args.model)
     is_rl = mdl_path.lower().endswith(".zip")
     print(f"🔍  Loading {'DQN' if is_rl else 'RandomForest'} model from “{mdl_path}”…")
 
-    if is_rl:
-        from stable_baselines3 import DQN
-        agent = DQN.load(mdl_path)
-    else:
+    rf = None
+    if not is_rl:
         rf = joblib.load(mdl_path)
         tag = Path(mdl_path).stem
         tuned = load_threshold(MODEL_DIR, tag) or {}
@@ -134,35 +138,42 @@ def main() -> None:
         gap = tuned.get("PROBA_GAP", PROBA_GAP)
         print(f"   → thresholds   up={up}  dn={dn}  gap={gap}")
 
-    # 3) FAST path for RF ---------------------------------------------------
-    if (args.fast or not is_rl):
-        if is_rl and args.fast:
-            print("⚠️  --fast ignored for RL models – falling back to Gym.")
-        if not is_rl and args.fast:
-            res = _quick_backtest_rf(rf, raw, raw['close'], up, dn, gap)
-            eq  = res["equity_s"]
-            # Corrected indexing on the next line
-            start, end = eq.index[[0, -1]]
-            btc = (raw["close"].iloc[-1] / raw["close"].iloc[0] - 1) * 100
+    # --- Path 1: Fast, Vectorized Backtest for RF models ---
+    if not is_rl and args.fast:
+        print("🚀 Running fast, vectorized backtest...")
+        res = _quick_backtest_rf(rf, raw, raw['close'], up, dn, gap)
+        eq  = res["equity_s"]
+        start, end = eq.index[[0, -1]]
+        btc = (raw["close"].iloc[-1] / raw["close"].iloc[0] - 1) * 100
 
-            print(f"\n🕒  Testing period: {start} → {end}")
-            print(f"💰  Total return: {(eq.iloc[-1]-1)*100:+.2f}%")
-            print(f"📉  Buy-and-hold BTC: {btc:+.2f}%")
-            print(f"📉  Trades taken: {res['trades']}  |  Win rate: {res['win_rate']:.2f} %")
-            print(f"📊  Sharpe: {res['sharpe']:.2f}")
+        print(f"\n🕒  Testing period: {start} → {end}")
+        print(f"💰  Total return: {res['total_return']:+.2f}%")
+        print(f"📉  Buy-and-hold BTC: {btc:+.2f}%")
+        print(f"📉  Trades taken: {res['trades']}  |  Win rate: {res['win_rate']:.2f} %")
+        print(f"📊  Sharpe: {res['sharpe']:.2f}")
 
-            acc, mp, mr, _ = compute_signal_classification_metrics(
-                    np.zeros_like(eq),   # dummy, not needed for headline stats
-                    raw["close"])
-            print(f"🔍  Accuracy: {acc:.2%}  |  Macro-P {mp:.2%}  R {mr:.2%}")
+        # Use the actual signals from the backtest result
+        acc, mp, mr, _ = compute_signal_classification_metrics(
+                res["signal"],
+                raw["close"])
+        print(f"🔍  Accuracy: {acc:.2%}  |  Macro-P {mp:.2%}  R {mr:.2%}")
 
-            em = eq.iloc[-1]
-            mu, sig, var95 = bootstrap_equity(eq)
-            print(f"📈  Equity multiple: {em:.2f} (boot μ {mu:.2f} σ {sig:.2f} "
-                  f"VaR95 {var95:.2f})")
-            return
+        em = eq.iloc[-1]
+        mu, sig, var95 = bootstrap_equity(eq)
+        print(f"📈  Equity multiple: {em:.2f} (boot μ {mu:.2f} σ {sig:.2f} "
+              f"VaR95 {var95:.2f})")
+        return
 
-    # 4) Original Gym loop (unchanged, kicks in when --fast not asked)
+    # --- Path 2: Gym Loop (for RL models or normal RF backtest) ---
+    if is_rl and args.fast:
+        print("⚠️  --fast ignored for RL models – falling back to Gym.")
+
+    print("🐌 Running detailed, step-by-step backtest using Gym environment...")
+
+    if is_rl:
+        from stable_baselines3 import DQN
+        agent = DQN.load(mdl_path)
+
     env   = MinuteTradingEnv(raw)
     obs,_ = env.reset()
     equity, acts, ts, prices = [], [], [], []
@@ -171,37 +182,33 @@ def main() -> None:
         if is_rl:
             action = int(agent.predict(obs, deterministic=True)[0])
         else:
-            # --- FIX START ---
-            # The original code was feeding the model raw data.
-            # This version gets the correct 27 features the model was trained on.
             features = raw[rf.feature_names_in_].iloc[env.pointer - 1].values.reshape(1, -1)
             p = rf.predict_proba(features)[0, 1]
-            # --- FIX END ---
             gp = abs(p - 0.5)
             action = 1 if p > up and gp >= gap else 2 if p < dn and gp >= gap else 0
-        obs, _, done, _, _ = env.step(action)
 
+        obs, _, done, _, _ = env.step(action)
         equity.append(env.equity)
         acts.append(action)
-        ts.append(raw.index[env.pointer-1])
-        prices.append(raw["close"].iloc[env.pointer-1])
+        ts.append(raw.index[env.pointer - 1])
+        prices.append(raw["close"].iloc[env.pointer - 1])
 
         if done:
             break
 
-    # — report identical to before —
     equity_s = pd.Series(equity, index=ts)
     start, end = equity_s.index[[0, -1]]
     btc = (raw["close"].iloc[-1] / raw["close"].iloc[0] - 1) * 100
 
     print(f"\n🕒  Testing period: {start} → {end}")
-    print(f"💰  Total return: {(equity_s.iloc[-1]-1)*100:+.2f}%")
+    print(f"💰  Total return: {(equity_s.iloc[-1] - 1) * 100:+.2f}%")
     print(f"📉  Buy-and-hold BTC: {btc:+.2f}%")
 
     st = env.get_performance_stats()
     print(f"📉  Trades taken: {st['Total Trades']}  |  Win rate: {st['Win Rate (%)']} %")
     print(f"📊  Sharpe: {compute_sharpe_ratio(equity_s):.2f}")
 
+    # Correctly call the metrics function with the actual actions taken
     acc, mp, mr, _ = compute_signal_classification_metrics(
         np.array(acts), pd.Series(prices, index=ts))
     print(f"🔍  Accuracy: {acc:.2%}  |  Macro-P {mp:.2%}  R {mr:.2%}")

@@ -83,20 +83,39 @@ def _utc_ms(dt: datetime) -> int:
 
 
 # ── public api ─────────────────────────────────────────────────────
-def fetch_history(days: int = HIST_DAYS) -> pd.DataFrame:
-    ex = _binance(); ex.load_markets()
-    since = _utc_ms(datetime.utcnow() - timedelta(days=days))
-    rows: List[List] = []
+def fetch_history(days: int = HIST_DAYS, start_date: str | None = None, end_date: str | None = None) -> pd.DataFrame:
+    ex = _binance()
+    ex.load_markets()
+    
+    # Use date range if provided, otherwise default to 'days'
+    if start_date:
+        since = ex.parse8601(f"{start_date}T00:00:00Z")
+    else:
+        since = _utc_ms(datetime.utcnow() - timedelta(days=days))
 
-    while since < _utc_ms(datetime.utcnow()):
-        batch = ex.fetch_ohlcv(PAIR, timeframe=TIMEFRAME, since=since, limit=1000)
-        if not batch: break
-        rows.extend(batch)
-        since = batch[-1][0] + 60_000
+    limit = 1000
+    all_ohlcv = []
+
+    while True:
+        ohlcv = ex.fetch_ohlcv(PAIR, timeframe=TIMEFRAME, since=since, limit=limit)
+        if len(ohlcv) == 0:
+            break
+        
+        since = ohlcv[-1][0] + 1
+        all_ohlcv.extend(ohlcv)
+
+        if end_date and since > ex.parse8601(f"{end_date}T23:59:59Z"):
+            break
+        
         time.sleep(ex.rateLimit / 1000)
 
-    df = pd.DataFrame(rows, columns=["timestamp","open","high","low","close","volume"])
+    df = pd.DataFrame(all_ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"])
     df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", utc=True)
+    
+    # Filter final dataframe to exact end_date if provided
+    if end_date:
+        df = df[df['timestamp'] <= pd.to_datetime(end_date, utc=True)]
+        
     return add_indicators(df.set_index("timestamp"))
 
 

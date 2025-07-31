@@ -1,322 +1,41 @@
 Loading full historical data from local file...
-Using training slice: 790474 rows from 2023-08-01 01:27:00+00:00 to 2025-01-31 00:00:00+00:00
-Training single model: balanced counts 0→380180, 1→380180
+Starting walk-forward training on: 2671647 rows from 2020-01-01 01:27:00+00:00 to 2025-01-31 00:00:00+00:00
+Fold 0: balanced counts 0→261834, 1→261834
+Fold 1: balanced counts 0→262312, 1→262312
+Fold 2: balanced counts 0→261567, 1→261567
+Fold 3: balanced counts 0→261676, 1→261676
+Fold 4: balanced counts 0→261056, 1→261056
+Fold 5: balanced counts 0→260829, 1→260829
+Fold 6: balanced counts 0→260165, 1→260165
+Fold 7: balanced counts 0→260689, 1→260689
+Fold 8: balanced counts 0→261064, 1→261064
+Fold 9: balanced counts 0→261108, 1→261108
+Fold 10: balanced counts 0→259716, 1→259716
+Fold 11: balanced counts 0→252580, 1→252580
+Fold 12: balanced counts 0→250132, 1→250132
+Fold 13: balanced counts 0→249399, 1→249399
+Fold 14: balanced counts 0→249857, 1→249857
+Fold 15: balanced counts 0→254405, 1→254405
 
-✅ Master model saved to models/rf_master.joblib
-Using cpu device
-step 5,000  last_reward = -0.00000
-step 10,000  last_reward = +0.00010
-step 15,000  last_reward = -0.00009
-step 20,000  last_reward = +0.00014
-step 25,000  last_reward = -0.00023
-step 30,000  last_reward = -0.00009
-step 35,000  last_reward = -0.00008
-step 40,000  last_reward = +0.00000
-step 45,000  last_reward = +0.00022
-step 50,000  last_reward = +0.00001
-step 55,000  last_reward = -0.00009
-step 60,000  last_reward = -0.00052
-step 65,000  last_reward = -0.00000
-step 70,000  last_reward = -0.00080
-step 75,000  last_reward = -0.00008
-step 80,000  last_reward = -0.00000
-step 85,000  last_reward = +0.00035
-step 90,000  last_reward = -0.00007
-step 95,000  last_reward = +0.00026
-step 100,000  last_reward = -0.00063
-step 100,000  ε = 0.277
-step 105,000  last_reward = -0.00016
-step 110,000  last_reward = -0.00009
-step 115,000  last_reward = -0.00197
-step 120,000  last_reward = +0.00067
-step 125,000  last_reward = +0.00011
-step 130,000  last_reward = -0.00015
-step 135,000  last_reward = -0.00000
-step 140,000  last_reward = +0.00006
-step 145,000  last_reward = -0.00021
-step 150,000  last_reward = +0.00004
-step 155,000  last_reward = -0.00209
-step 160,000  last_reward = +0.00012
-step 165,000  last_reward = -0.00168
-step 170,000  last_reward = -0.00004
-step 175,000  last_reward = -0.00044
-step 180,000  last_reward = +0.00023
-step 185,000  last_reward = +0.00000
-step 190,000  last_reward = -0.00440
-step 195,000  last_reward = +0.00325
-step 200,000  last_reward = -0.00219
-step 200,000  ε = 0.253
-step 205,000  last_reward = -0.00271
-step 210,000  last_reward = +0.00131
-step 215,000  last_reward = -0.00056
-step 220,000  last_reward = +0.00046
-step 225,000  last_reward = -0.00000
-step 230,000  last_reward = -0.00021
-step 235,000  last_reward = +0.00011
-step 240,000  last_reward = +0.00014
-step 245,000  last_reward = -0.00037
-step 250,000  last_reward = +0.00019
-step 255,000  last_reward = +0.00043
-step 260,000  last_reward = +0.00008
-step 265,000  last_reward = +0.00080
-step 270,000  last_reward = -0.00003
-step 275,000  last_reward = +0.00011
-step 280,000  last_reward = +0.00098
-step 285,000  last_reward = +0.00073
-step 290,000  last_reward = +0.00048
-step 295,000  last_reward = +0.00021
-step 300,000  last_reward = -0.00025
-step 300,000  ε = 0.230
-step 305,000  last_reward = -0.00217
-step 310,000  last_reward = -0.00046
-step 315,000  last_reward = -0.00092
-step 320,000  last_reward = +0.00041
-step 325,000  last_reward = +0.00162
-step 330,000  last_reward = +0.00098
-step 335,000  last_reward = -0.00156
-step 340,000  last_reward = -0.00217
-step 345,000  last_reward = -0.00029
-step 350,000  last_reward = -0.00059
-step 355,000  last_reward = +0.00166
-step 360,000  last_reward = -0.00006
-step 365,000  last_reward = -0.00278
-step 370,000  last_reward = +0.00085
-step 375,000  last_reward = -0.00143
-step 380,000  last_reward = +0.00006
-step 385,000  last_reward = -0.00034
-step 390,000  last_reward = +0.00035
-step 395,000  last_reward = +0.00138
-step 400,000  last_reward = +0.00010
-step 400,000  ε = 0.207
-step 405,000  last_reward = +0.00010
-step 410,000  last_reward = -0.00018
-step 415,000  last_reward = +0.00005
-step 420,000  last_reward = +0.00012
-step 425,000  last_reward = -0.00021
-step 430,000  last_reward = +0.00023
-step 435,000  last_reward = -0.00007
-step 440,000  last_reward = -0.00000
-step 445,000  last_reward = -0.00032
-step 450,000  last_reward = -0.00247
-step 455,000  last_reward = +0.00000
-step 460,000  last_reward = -0.00000
-step 465,000  last_reward = -0.00062
-step 470,000  last_reward = +0.00012
-step 475,000  last_reward = +0.00025
-step 480,000  last_reward = -0.00015
-step 485,000  last_reward = -0.00011
-step 490,000  last_reward = -0.00004
-step 495,000  last_reward = +0.00067
-step 500,000  last_reward = -0.00220
-step 500,000  ε = 0.183
-step 505,000  last_reward = +0.00010
-step 510,000  last_reward = -0.00000
-step 515,000  last_reward = -0.00236
-step 520,000  last_reward = +0.00018
-step 525,000  last_reward = +0.00261
-step 530,000  last_reward = +0.00004
-step 535,000  last_reward = -0.00111
-step 540,000  last_reward = +0.00003
-step 545,000  last_reward = +0.00048
-step 550,000  last_reward = +0.00017
-step 555,000  last_reward = -0.00083
-step 560,000  last_reward = +0.00054
-step 565,000  last_reward = -0.00119
-step 570,000  last_reward = -0.00010
-step 575,000  last_reward = -0.00256
-step 580,000  last_reward = +0.00030
-step 585,000  last_reward = +0.00011
-step 590,000  last_reward = -0.00085
-step 595,000  last_reward = +0.00000
-step 600,000  last_reward = +0.00027
-step 600,000  ε = 0.160
-step 605,000  last_reward = -0.00024
-step 610,000  last_reward = -0.00226
-step 615,000  last_reward = +0.00000
-step 620,000  last_reward = -0.00088
-step 625,000  last_reward = +0.00010
-step 630,000  last_reward = -0.00032
-step 635,000  last_reward = -0.00014
-step 640,000  last_reward = -0.00333
-step 645,000  last_reward = +0.00046
-step 650,000  last_reward = -0.00050
-step 655,000  last_reward = +0.00006
-step 660,000  last_reward = -0.00020
-step 665,000  last_reward = +0.00052
-step 670,000  last_reward = -0.00000
-step 675,000  last_reward = +0.00020
-step 680,000  last_reward = +0.00076
-step 685,000  last_reward = +0.00224
-step 690,000  last_reward = -0.00067
-step 695,000  last_reward = +0.00025
-step 700,000  last_reward = +0.00024
-step 700,000  ε = 0.137
-step 705,000  last_reward = -0.00038
-step 710,000  last_reward = +0.00114
-step 715,000  last_reward = +0.00125
-step 720,000  last_reward = -0.00001
-step 725,000  last_reward = -0.00027
-step 730,000  last_reward = -0.00292
-step 735,000  last_reward = +0.00015
-step 740,000  last_reward = +0.00006
-step 745,000  last_reward = -0.00072
-step 750,000  last_reward = -0.00009
-step 755,000  last_reward = -0.00022
-step 760,000  last_reward = -0.00047
-step 765,000  last_reward = +0.00117
-step 770,000  last_reward = -0.00266
-step 775,000  last_reward = -0.00036
-step 780,000  last_reward = +0.00191
-step 785,000  last_reward = -0.00263
-step 790,000  last_reward = +0.00116
-step 795,000  last_reward = -0.00227
-step 800,000  last_reward = +0.00027
-step 800,000  ε = 0.113
-step 805,000  last_reward = -0.00000
-step 810,000  last_reward = -0.00000
-step 815,000  last_reward = +0.00064
-step 820,000  last_reward = +0.00007
-step 825,000  last_reward = -0.00000
-step 830,000  last_reward = -0.00020
-step 835,000  last_reward = -0.00037
-step 840,000  last_reward = -0.00157
-step 845,000  last_reward = +0.00018
-step 850,000  last_reward = +0.00216
-step 855,000  last_reward = -0.00001
-step 860,000  last_reward = -0.00110
-step 865,000  last_reward = -0.00041
-step 870,000  last_reward = +0.00057
-step 875,000  last_reward = +0.00000
-step 880,000  last_reward = +0.00002
-step 885,000  last_reward = +0.00041
-step 890,000  last_reward = -0.00023
-step 895,000  last_reward = -0.00024
-step 900,000  last_reward = -0.00013
-step 900,000  ε = 0.090
-step 905,000  last_reward = -0.00050
-step 910,000  last_reward = -0.00033
-step 915,000  last_reward = -0.00007
-step 920,000  last_reward = -0.00021
-step 925,000  last_reward = +0.00040
-step 930,000  last_reward = +0.00043
-step 935,000  last_reward = +0.00091
-step 940,000  last_reward = +0.00028
-step 945,000  last_reward = +0.00093
-step 950,000  last_reward = +0.00042
-step 955,000  last_reward = -0.00040
-step 960,000  last_reward = +0.00014
-step 965,000  last_reward = +0.00030
-step 970,000  last_reward = -0.00016
-step 975,000  last_reward = +0.00071
-step 980,000  last_reward = +0.00062
-step 985,000  last_reward = -0.00228
-step 990,000  last_reward = +0.00000
-step 995,000  last_reward = +0.00018
-step 1,000,000  last_reward = -0.00026
-step 1,000,000  ε = 0.067
-step 1,005,000  last_reward = +0.00024
-step 1,010,000  last_reward = -0.00001
-step 1,015,000  last_reward = -0.00000
-step 1,020,000  last_reward = +0.00034
-step 1,025,000  last_reward = -0.00010
-step 1,030,000  last_reward = +0.00023
-step 1,035,000  last_reward = -0.00016
-step 1,040,000  last_reward = -0.00014
-step 1,045,000  last_reward = -0.00007
-step 1,050,000  last_reward = -0.00221
-step 1,055,000  last_reward = -0.00021
-step 1,060,000  last_reward = -0.00037
-step 1,065,000  last_reward = -0.00047
-step 1,070,000  last_reward = +0.00012
-step 1,075,000  last_reward = +0.00103
-step 1,080,000  last_reward = -0.00023
-step 1,085,000  last_reward = -0.00053
-step 1,090,000  last_reward = -0.00000
-step 1,095,000  last_reward = +0.00435
-step 1,100,000  last_reward = -0.00003
-step 1,100,000  ε = 0.043
-step 1,105,000  last_reward = -0.00081
-step 1,110,000  last_reward = -0.00016
-step 1,115,000  last_reward = -0.00286
-step 1,120,000  last_reward = -0.00116
-step 1,125,000  last_reward = +0.00045
-step 1,130,000  last_reward = -0.00048
-step 1,135,000  last_reward = +0.00012
-step 1,140,000  last_reward = -0.00050
-step 1,145,000  last_reward = -0.00072
-step 1,150,000  last_reward = +0.00003
-step 1,155,000  last_reward = -0.00046
-step 1,160,000  last_reward = +0.00346
-step 1,165,000  last_reward = -0.00172
-step 1,170,000  last_reward = -0.00043
-step 1,175,000  last_reward = +0.00000
-step 1,180,000  last_reward = -0.00021
-step 1,185,000  last_reward = +0.00023
-step 1,190,000  last_reward = -0.00033
-step 1,195,000  last_reward = +0.00065
-step 1,200,000  last_reward = -0.00104
-step 1,200,000  ε = 0.020
-step 1,205,000  last_reward = +0.00000
-step 1,210,000  last_reward = +0.00022
-step 1,215,000  last_reward = -0.00053
-step 1,220,000  last_reward = -0.00014
-step 1,225,000  last_reward = -0.00014
-step 1,230,000  last_reward = -0.00011
-step 1,235,000  last_reward = +0.00006
-step 1,240,000  last_reward = -0.00000
-step 1,245,000  last_reward = +0.00000
-step 1,250,000  last_reward = -0.00000
-step 1,255,000  last_reward = +0.00107
-step 1,260,000  last_reward = -0.00031
-step 1,265,000  last_reward = +0.00064
-step 1,270,000  last_reward = -0.00014
-step 1,275,000  last_reward = -0.00006
-step 1,280,000  last_reward = -0.00231
-step 1,285,000  last_reward = +0.00017
-step 1,290,000  last_reward = -0.00017
-step 1,295,000  last_reward = +0.00050
-step 1,300,000  last_reward = +0.00002
-step 1,300,000  ε = 0.020
-step 1,305,000  last_reward = -0.00126
-step 1,310,000  last_reward = +0.00007
-step 1,315,000  last_reward = +0.00063
-step 1,320,000  last_reward = +0.00045
-step 1,325,000  last_reward = +0.00124
-step 1,330,000  last_reward = +0.00068
-step 1,335,000  last_reward = +0.00014
-step 1,340,000  last_reward = -0.00013
-step 1,345,000  last_reward = -0.00026
-step 1,350,000  last_reward = +0.00027
-step 1,355,000  last_reward = -0.00008
-step 1,360,000  last_reward = -0.00005
-step 1,365,000  last_reward = +0.00012
-step 1,370,000  last_reward = +0.00074
-step 1,375,000  last_reward = -0.00053
-step 1,380,000  last_reward = -0.00064
-step 1,385,000  last_reward = +0.00031
-step 1,390,000  last_reward = +0.00007
-step 1,395,000  last_reward = +0.00102
-step 1,400,000  last_reward = -0.00031
-step 1,400,000  ε = 0.020
-step 1,405,000  last_reward = +0.00038
-step 1,410,000  last_reward = -0.00001
-step 1,415,000  last_reward = +0.00022
-step 1,420,000  last_reward = +0.00033
-step 1,425,000  last_reward = +0.00027
-step 1,430,000  last_reward = +0.00000
-step 1,435,000  last_reward = +0.00026
-step 1,440,000  last_reward = -0.00009
-step 1,445,000  last_reward = -0.00072
-step 1,450,000  last_reward = -0.00057
-step 1,455,000  last_reward = -0.00018
-step 1,460,000  last_reward = -0.00009
-step 1,465,000  last_reward = -0.00022
-step 1,470,000  last_reward = -0.00016
-step 1,475,000  last_reward = -0.00088
-step 1,480,000  last_reward = -0.00019
-step 1,485,000  last_reward = +0.00005
-step 1,490,000  last_reward = +0.00109
-step 1,495,000  last_reward = -0.00009
-step 1,500,000  last_reward = -0.00132
-step 1,500,000  ε = 0.020
-✅ DQN master model saved to models/dqn_master
+⭐ Best fold 3 (eq 1.08) → rf_best.joblib
+
+Walk-forward results:
+ fold      auc       eq  thr_up  gap
+    0 0.524306 0.602890    0.69 0.05
+    1 0.525989 0.734914    0.69 0.05
+    2 0.524185 0.997997    0.69 0.05
+    3 0.511078 1.084639    0.69 0.05
+    4 0.518631 0.847900    0.69 0.05
+    5 0.518131 0.319102    0.69 0.05
+    6 0.513566 0.863763    0.69 0.05
+    7 0.510220 0.978620    0.69 0.05
+    8 0.516318 0.796356    0.69 0.05
+    9 0.508211 0.771728    0.69 0.05
+   10 0.525414 0.604274    0.69 0.05
+   11 0.520709 0.186861    0.69 0.05
+   12 0.507655 0.403129    0.69 0.05
+   13 0.515765 0.703829    0.69 0.05
+   14 0.516579 0.933358    0.69 0.05
+   15 0.513898 0.923037    0.69 0.05
+
+✅ Walk-forward training complete.

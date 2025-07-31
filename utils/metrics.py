@@ -81,9 +81,12 @@ def compute_signal_classification_metrics(actions: np.ndarray,
     next_ret = price_series.pct_change().shift(-1).fillna(0).values
     true_dir = np.sign(next_ret).astype(int)  # -1, 0, +1
 
-    # Predicted labels from actions
-    pred_dir = np.where(actions == 1,  1,
-                np.where(actions == 2, -1, 0))
+    # --- FIXED: Directly use the actions array if it's already in [-1, 0, 1] format ---
+    # This handles signals from both the Gym env (0,1,2) and vectorized backtest (-1,0,1)
+    if -1 in actions:
+        pred_dir = actions.astype(int)
+    else: # Handle the (0,1,2) format from the Gym environment
+        pred_dir = np.where(actions == 1, 1, np.where(actions == 2, -1, 0))
 
     # 1) Overall accuracy
     accuracy = accuracy_score(true_dir, pred_dir)

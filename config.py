@@ -28,13 +28,13 @@ TESTNET_MODE = os.getenv("TESTNET_MODE", "1") == "1"
 PAIR = os.getenv("TRADING_PAIR", "BTC/USDT")
 TIMEFRAME = "1m"
 POSITION_SIZE = float(os.getenv("POSITION_SIZE", "0.001"))
-HIST_DAYS = int(os.getenv("HIST_DAYS", "30"))
+HIST_DAYS = int(os.getenv("HIST_DAYS", "365"))
 
 # ── Indicator & RL parameters ──────────────────────────────────────
 WINDOW = int(os.getenv("WINDOW", "60"))
 REWARD_SCALE = float(os.getenv("REWARD_SCALE", "1"))
 DRAWDOWN_LIMIT = float(os.getenv("DRAWDOWN_LIMIT", "0.10"))
-WALKFORWARD = int(os.getenv("WALKFORWARD", "30"))
+WALKFORWARD = int(os.getenv("WALKFORWARD", "90"))
 
 # ── Discrete-signal thresholds (Random-Forest inference) ───────────
 THRESH_UP = float(os.getenv("THRESH_UP", "0.55"))

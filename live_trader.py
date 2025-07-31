@@ -23,157 +23,159 @@ warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 # ─── Other imports ────────────────────────────────────────────────
 import asyncio, numpy as np, joblib
 from datetime import datetime
-from stable_baselines3 import DQN
-
 from data_engineering import create_exchange, get_latest_data, add_indicators
-from config import PAIR, POSITION_SIZE, THRESH_UP, THRESH_DN, WINDOW, TESTNET_MODE
+from config import PAIR, POSITION_SIZE, THRESH_UP, THRESH_DN, PROBA_GAP, WINDOW, TESTNET_MODE, MODEL_DIR
+from utils.threshold_search import load_threshold
 
 class LiveTradingBot:
     def __init__(self):
         print("🤖 Initializing AI Trading Bot…")
-        self.rf_model  = joblib.load("models/rf_minute.pkl")
-        self.dqn_model = DQN.load("models/dqn_minute")
-        print("✅ Models loaded successfully")
+        
+        # --- Load the best RF model and its thresholds ---
+        self.rf_model = joblib.load(f"{MODEL_DIR}/rf_best.joblib")
+        tag = os.path.splitext(os.path.basename(f"{MODEL_DIR}/rf_best.joblib"))[0]
+        tuned = load_threshold(MODEL_DIR, tag) or {}
+        self.thresh_up = tuned.get("THRESH_UP", THRESH_UP)
+        self.thresh_dn = tuned.get("THRESH_DN", THRESH_DN)
+        self.proba_gap = tuned.get("PROBA_GAP", PROBA_GAP)
+        print("✅ RF Model loaded successfully")
 
         self.exchange = create_exchange()
         print(f"🔗 Connected to Binance {'🏖️ TESTNET' if TESTNET_MODE else '🔴 LIVE'}")
-        print(f"📊 Pair: {PAIR} | Position: {POSITION_SIZE} BTC")
-        print(f"🎯 RF > {THRESH_UP:.2f} BUY, RF < {THRESH_DN:.2f} SELL")
+        print(f"📊 Pair: {PAIR} | Position Size: {POSITION_SIZE} {PAIR.split('/')[0]}")
+        print(f"🎯 Thresholds: Buy>{self.thresh_up:.2f}, Sell<{self.thresh_dn:.2f}, Gap>±{self.proba_gap:.2f}")
         print("-" * 70)
 
-        df = get_latest_data(WINDOW)
-        if df is None or len(df) < WINDOW:
+        self.historical = get_latest_data(WINDOW)
+        if self.historical is None or len(self.historical) < WINDOW:
             raise RuntimeError("❌ Unable to fetch initial data window")
-        add_indicators(df)
+        self.historical = add_indicators(self.historical)
         print(f"✅ Loaded & processed initial {WINDOW} bars")
-        self.historical = df
 
+        self.current_position = 0 # -1 for short, 0 for flat, 1 for long
         self.trades_today = 0
         self.start_balance = None
 
-    async def get_account_info(self):
+
+    async def get_current_balance(self, quote_asset='USDT'):
         try:
-            bal  = self.exchange.fetch_balance()
-            btc  = bal["total"].get("BTC", 0.0)
-            usdt = bal["total"].get("USDT", 0.0)
-            if self.start_balance is None:
-                self.start_balance = {"BTC": btc, "USDT": usdt}
-            price = await self.get_current_price()
-            return {"BTC": btc, "USDT": usdt, "BTC_USD": btc * price}
+            balance = self.exchange.fetch_balance()
+            return balance['total'].get(quote_asset, 0.0)
         except Exception as e:
             print(f"❌ Error fetching balance: {e}")
             return None
 
     async def get_current_price(self):
         try:
-            t = self.exchange.fetch_ticker(PAIR)
-            return float(t["last"])
+            ticker = self.exchange.fetch_ticker(PAIR)
+            return float(ticker["last"])
         except Exception as e:
             print(f"❌ Error fetching price: {e}")
             return 0.0
 
-    async def place_order(self, side: str):
+    async def execute_trade(self, desired_pos: int):
+        """Places orders to match the desired position."""
+        trade_executed = False
+        # Case 1: Go from flat to long
+        if self.current_position == 0 and desired_pos == 1:
+            print("📈 Signal: FLAT → LONG. Placing BUY order.")
+            self.exchange.create_market_buy_order(PAIR, POSITION_SIZE)
+            self.current_position = 1
+            trade_executed = True
+        # Case 2: Go from flat to short
+        elif self.current_position == 0 and desired_pos == -1:
+            print("📉 Signal: FLAT → SHORT. Placing SELL order.")
+            self.exchange.create_market_sell_order(PAIR, POSITION_SIZE)
+            self.current_position = -1
+            trade_executed = True
+        # Case 3: Go from long to flat (exit)
+        elif self.current_position == 1 and desired_pos != 1:
+            print("🚪 Signal: LONG → FLAT. Placing SELL order to close.")
+            self.exchange.create_market_sell_order(PAIR, POSITION_SIZE)
+            self.current_position = 0
+            trade_executed = True
+        # Case 4: Go from short to flat (exit)
+        elif self.current_position == -1 and desired_pos != -1:
+            print("🚪 Signal: SHORT → FLAT. Placing BUY order to close.")
+            self.exchange.create_market_buy_order(PAIR, POSITION_SIZE)
+            self.current_position = 0
+            trade_executed = True
+        
+        if trade_executed:
+            self.trades_today +=1
+            print(f"✅ Trade executed. New position: {self.current_position}")
+        else:
+            print(f"▶️ Holding position: {self.current_position}. No trade needed.")
+
+    async def get_desired_position(self) -> int:
+        """Fetches new data and computes the model's desired position."""
         try:
-            if side.lower() == "buy":
-                o = self.exchange.create_market_buy_order(PAIR, POSITION_SIZE)
-            else:
-                o = self.exchange.create_market_sell_order(PAIR, POSITION_SIZE)
-            print(f"✅ {side.upper()} executed: ID={o.get('id')}, price={o.get('price')}")
-            self.trades_today += 1
-            return o
-        except Exception as e:
-            print(f"❌ {side.upper()} order failed: {e}")
-            return None
+            # Fetch the latest bar and add to historical data
+            latest_bar = self.exchange.fetch_ohlcv(PAIR, "1m", limit=2)[0] # fetch 2, take first to ensure it's closed
+            new_row = pd.DataFrame([latest_bar], columns=["timestamp", "open", "high", "low", "close", "volume"])
+            new_row["timestamp"] = pd.to_datetime(new_row["timestamp"], unit="ms", utc=True)
+            new_row = new_row.set_index("timestamp")
 
-    async def generate_signals(self):
-        try:
-            print("🔄 [DEBUG] Fetching latest bar…")
-            raw = self.exchange.fetch_ohlcv(PAIR, "1m", limit=1)
-            if not raw:
-                return None, None, None
+            # Check for duplicate index before appending
+            if new_row.index[0] not in self.historical.index:
+                self.historical = pd.concat([self.historical.iloc[1:], new_row])
+            
+            # Recalculate indicators
+            self.historical = add_indicators(self.historical.copy())
+            
+            # Get latest features and predict
+            X = self.historical[self.rf_model.feature_names_in_].iloc[-1:]
+            prob = self.rf_model.predict_proba(X)[0, 1]
+            
+            # Determine desired position
+            gap_m = abs(prob - 0.5) >= self.proba_gap
+            desired_pos = 0
+            if prob > self.thresh_up and gap_m:
+                desired_pos = 1
+            elif prob < self.thresh_dn and gap_m:
+                desired_pos = -1
 
-            new = pd.DataFrame(raw, columns=["ts","open","high","low","close","vol"])
-            new["ts"] = pd.to_datetime(new["ts"], unit="ms", utc=True)
-            new.set_index("ts", inplace=True)
-            new = new.astype(float)
-
-            print("🔄 [DEBUG] Rolling window…")
-            self.historical = pd.concat([self.historical, new]).iloc[-WINDOW:]
-
-            try:
-                print("🔄 [DEBUG] Updating indicators…")
-                add_indicators(self.historical)
-            except Exception as ie:
-                print(f"⚠️ Indicator update failed: {ie}")
-
-            feat = list(self.rf_model.feature_names_in_)
-            for f in feat:
-                if f not in self.historical:
-                    self.historical[f] = 0.0
-            X = self.historical[feat].values
-
-            print("🔄 [DEBUG] Computing RF probability…")
-            rf_proba = self.rf_model.predict_proba(X)[:, 1][-1]
-
-            print("🔄 [DEBUG] Computing DQN action…")
-            action, _ = self.dqn_model.predict(X.astype(np.float32), deterministic=True)
-
-            price = float(self.historical["close"].iloc[-1])
-            print(f"🔄 [DEBUG] rf_proba={rf_proba:.3f}, action={int(action)}, price={price:.2f}")
-            return rf_proba, int(action), price
+            price = self.historical["close"].iloc[-1]
+            print(f"🧠 Model probability: {prob:.4f} → Desired Position: {desired_pos} | Price: ${price:,.2f}")
+            return desired_pos
 
         except Exception as e:
-            print(f"❌ Error generating signals: {e}")
-            return None, None, None
-
-    async def print_status(self, rf_proba, action, price, signal):
-        ts   = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        acct = await self.get_account_info()
-        print(f"\n🕒 {ts} | Price: ${price:.2f}")
-        print(f"🎯 RF Prob: {rf_proba:.3f} | DQN Action: {action} | Signal: {signal}")
-        if acct:
-            pnl = (acct["BTC"] - self.start_balance["BTC"]) * price + \
-                  (acct["USDT"] - self.start_balance["USDT"])
-            print(f"💼 Balances – BTC: {acct['BTC']:.6f}, USDT: {acct['USDT']:.2f}")
-            print(f"📈 Session P&L: ${pnl:.2f}")
-        print(f"⚔️ Trades today: {self.trades_today}")
-        print("-" * 70)
+            print(f"❌ Error during signal generation: {e}")
+            return self.current_position # Return current position on error to avoid false exits
 
     async def trading_loop(self):
         print("🚀 Starting live trading loop (Ctrl+C to stop)\n")
+        
+        # Set start balance for P&L tracking
+        self.start_balance = await self.get_current_balance()
+        print(f"💼 Starting Balance: ${self.start_balance:,.2f} USDT")
+
         while True:
             try:
-                print(f"\n🕒 [DEBUG] Loop at {datetime.now().isoformat()}")
-                rf_proba, action, price = await self.generate_signals()
+                desired_pos = await self.get_desired_position()
+                await self.execute_trade(desired_pos)
+                
+                # Print status
+                current_bal = await self.get_current_balance()
+                pnl = current_bal - self.start_balance if current_bal and self.start_balance else 0
+                print(f"⚔️ Trades today: {self.trades_today} | Session P&L: ${pnl:,.2f}")
+                print("-" * 70)
 
-                if rf_proba is not None:
-                    print("🔄 [DEBUG] Evaluating trade logic…")
-                    if action == 1 and rf_proba > THRESH_UP:
-                        signal = "BUY"
-                        await self.place_order("buy")
-                    elif action == 2 and rf_proba < THRESH_DN:
-                        signal = "SELL"
-                        await self.place_order("sell")
-                    else:
-                        signal = "HOLD"
-                        print("⏸️ HOLD – no trade")
-                    await self.print_status(rf_proba, action, price, signal)
-                else:
-                    print("⚠️ Skipping—no signals")
-
-                print("⏰ Sleeping 60s…")
                 await asyncio.sleep(60)
 
             except KeyboardInterrupt:
-                print("\n👋 Stopped by user")
+                print("\n👋 Manual stop detected. Exiting.")
                 break
             except Exception as e:
-                print(f"❌ Unexpected error: {e}")
+                print(f"❌ An unexpected error occurred in the trading loop: {e}")
                 await asyncio.sleep(60)
 
 async def main():
-    bot = LiveTradingBot()
-    await bot.trading_loop()
+    try:
+        bot = LiveTradingBot()
+        await bot.trading_loop()
+    except Exception as e:
+        print(f"FATAL: Bot failed to initialize: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())

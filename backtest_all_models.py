@@ -1,148 +1,141 @@
 #!/usr/bin/env python3
 """
 backtest_all_models.py
-Vectorised 30-day evaluation of every RF fold, in parallel.
-
-Per-model result → results_30d/<model>.txt
-Overall summary  → rf_30d_summary.csv
+Vectorised evaluation of every RF fold on both an
+in-sample (training) and out-of-sample (hold-out) set.
 """
 from __future__ import annotations
-import os, glob, textwrap, datetime as dt, joblib, pandas as pd, numpy as np
+import os, glob, textwrap, joblib, pandas as pd, numpy as np
 from joblib import Parallel, delayed
-from env_minute import MinuteTradingEnv
-from config import (HIST_DAYS, THRESH_UP, THRESH_DN,
-                      PROBA_GAP, print_config, FEE, SLIPPAGE)
-# ── project helpers -----------------------------------------------------------
-from data_engineering       import fetch_history
+from config import THRESH_UP, THRESH_DN, PROBA_GAP, FEE, SLIPPAGE, MODEL_DIR
 from utils.threshold_search import load_threshold
-# -----------------------------------------------------------------------------
+from utils.metrics import compute_signal_classification_metrics
 
+# --- SETTINGS ---
+MODEL_GLOB = "models/rf_fold*.joblib"
 
-# ─────────────── USER SETTINGS ────────────────────────────────────────────────
-MODEL_GLOB  = "models/rf_fold*.joblib"
-RESULT_DIR  = "results_30d"
-START_DATE  = pd.Timestamp("2025-06-29", tz="UTC")   # inclusive
-END_DATE    = pd.Timestamp("2025-07-29", tz="UTC")   # exclusive
-N_CORES     = min(16, os.cpu_count() or 4)
+# Define the two periods for evaluation
+IN_SAMPLE_START = pd.Timestamp("2020-01-01", tz="UTC")
+IN_SAMPLE_END = pd.Timestamp("2025-01-31", tz="UTC")
+OUT_OF_SAMPLE_START = pd.Timestamp("2025-02-01", tz="UTC")
+OUT_OF_SAMPLE_END = pd.Timestamp("2025-07-30", tz="UTC")
 
-# trading-cost assumptions (same as MinuteTradingEnv defaults)
-# ──────────────────────────────────────────────────────────────────────────────
+N_CORES = min(16, os.cpu_count() or 4)
 
+def _prep_slices():
+    """Prepares both the in-sample and out-of-sample data slices."""
+    try:
+        raw_full = pd.read_parquet("full_history.parquet")
+    except FileNotFoundError:
+        print("❌ Error: full_history.parquet not found. Run download_data.py first.")
+        exit()
+    
+    m_in = (raw_full.index >= IN_SAMPLE_START) & (raw_full.index < IN_SAMPLE_END)
+    df_in = raw_full.loc[m_in].copy()
 
-# ───────────────────────── helpers ────────────────────────────────────────────
-def _prep_slice():
-    span_days = (END_DATE - START_DATE).days + 1
-    raw = fetch_history(span_days)
+    m_out = (raw_full.index >= OUT_OF_SAMPLE_START) & (raw_full.index < OUT_OF_SAMPLE_END)
+    df_out = raw_full.loc[m_out].copy()
+    
+    return df_in, df_out
 
-    # ---- Step 3: make index tz-aware & keep *all* columns, incl. "close"
-    raw.index = (raw.index.tz_localize("UTC") if raw.index.tz is None
-                 else raw.index.tz_convert("UTC"))
-    m = (raw.index >= START_DATE) & (raw.index < END_DATE)
-    feats  = raw.loc[m].copy()           # keep every feature column
-    prices = feats["close"]
-    return feats, prices, span_days
+def _vectorized_backtest(rf, df: pd.DataFrame, up: float, dn: float, gap: float) -> dict:
+    """Runs a backtest where positions are held only when a signal is active."""
+    if df.empty:
+        return {
+            "return": 0.0, "sharpe": 0.0, "successful_trades": 0, "failed_trades": 0,
+            "accuracy": 0.0, "precision": 0.0, "recall": 0.0
+        }
 
-
-# ADD THIS NEW, FAST BACKTEST FUNCTION
-def _vectorized_backtest(rf, df: pd.DataFrame, price: pd.Series,
-                         up: float, dn: float, gap: float) -> dict:
-    """
-    A fast, vectorized backtest that accurately mirrors the cost
-    logic from the MinuteTradingEnv (FEE + SLIPPAGE).
-    """
-    # --- Signal Generation ---
+    price = df["close"]
     X = df[rf.feature_names_in_]
     prob = rf.predict_proba(X)[:, 1]
     gap_m = np.abs(prob - .5) >= gap
-    signal = np.where(prob > up,  1,
-              np.where(prob < dn, -1, 0))
-    signal = signal * gap_m
 
-    # --- PnL Calculation ---
-    pos = pd.Series(signal, index=df.index).replace(0, np.nan).ffill().fillna(0.).to_numpy()
-    rets = price.pct_change().shift(-1).fillna(0.).to_numpy()
+    desired_position = np.where(prob > up,  1, np.where(prob < dn, -1, 0))
+    desired_position = desired_position * gap_m
+    position = pd.Series(desired_position, index=df.index).shift(1).fillna(0)
 
-    # Accurately model costs from MinuteTradingEnv
-    pos_change = np.abs(np.diff(np.concatenate(([0.], pos))))
-    trade_cost = FEE + SLIPPAGE
-    costs = pos_change * trade_cost
+    rets = price.pct_change().fillna(0.)
+    pnl = position * rets
+    trades = position.diff().abs()
+    costs = trades * (FEE + SLIPPAGE)
+    net_pnl = pnl - costs
+    equity = 1 + np.cumsum(net_pnl)
 
-    pnl = pos * rets - costs
-    equity = 1 + np.cumsum(pnl)
+    in_trade = position != 0
+    # --- FIXED: Add .astype(bool) to prevent FutureWarning ---
+    trade_starts = in_trade & ~in_trade.shift(1).fillna(False).astype(bool)
+    trade_ids = trade_starts.cumsum()
+    trade_pnl = net_pnl[in_trade].groupby(trade_ids[in_trade]).sum()
+    
+    successful_trades = int((trade_pnl > 0).sum())
+    failed_trades = int((trade_pnl <= 0).sum())
 
-    # --- Metrics ---
-    win_mask = pos != 0
-    wins = ((pos > 0) & (rets > 0)) | ((pos < 0) & (rets < 0))
-    win_rate = float(wins[win_mask].mean() * 100) if win_mask.any() else 0.
-    sharpe = (pnl.mean() / pnl.std() * np.sqrt(252 * 6.5 * 60)) if pnl.std() > 0 else 0.0
-
+    acc, prec, rec, _ = compute_signal_classification_metrics(position.to_numpy(), price)
+    
     return {
-        "total_return": (equity[-1] - 1) * 100,
-        "equity_mult": float(equity[-1]),
-        "sharpe": sharpe,
-        "trades": int((pos_change > 0).sum()),
-        "win_rate": win_rate,
+        "return": (equity.iloc[-1] - 1) * 100,
+        "sharpe": (net_pnl.mean() / net_pnl.std() * np.sqrt(252*6.5*60)) if net_pnl.std() else 0.0,
+        "successful_trades": successful_trades,
+        "failed_trades": failed_trades,
+        "accuracy": acc * 100,
+        "precision": prec * 100,
+        "recall": rec * 100
     }
 
-
-# REPLACE the old _run_one function WITH THIS ONE
-def _run_one(model_path: str, feats: pd.DataFrame, prices: pd.Series,
-             span_days: int):
+def _run_one(model_path: str, df_in: pd.DataFrame, df_out: pd.DataFrame):
+    """Runs both backtests for a single model and returns all metrics."""
     tag = os.path.splitext(os.path.basename(model_path))[0]
     rf = joblib.load(model_path)
-
     tuned = load_threshold("models", tag) or {}
-    up = tuned.get("THRESH_UP", THRESH_UP)
-    dn = tuned.get("THRESH_DN", THRESH_DN)
-    gap = tuned.get("PROBA_GAP", PROBA_GAP)
+    up, dn, gap = tuned.get("THRESH_UP", THRESH_UP), tuned.get("THRESH_DN", THRESH_DN), tuned.get("PROBA_GAP", PROBA_GAP)
+    
+    stats_in = _vectorized_backtest(rf, df_in, up, dn, gap)
+    stats_out = _vectorized_backtest(rf, df_out, up, dn, gap)
+    
+    return {
+        "model": tag,
+        "in_return": stats_in["return"],
+        "in_sharpe": stats_in["sharpe"],
+        "in_successful": stats_in["successful_trades"],
+        "in_failed": stats_in["failed_trades"],
+        "in_accuracy": stats_in["accuracy"],
+        "in_precision": stats_in["precision"],
+        "in_recall": stats_in["recall"],
+        "out_return": stats_out["return"],
+        "out_sharpe": stats_out["sharpe"],
+        "out_successful": stats_out["successful_trades"],
+        "out_failed": stats_out["failed_trades"],
+        "out_accuracy": stats_out["accuracy"],
+        "out_precision": stats_out["precision"],
+        "out_recall": stats_out["recall"],
+    }
 
-    if any(c not in feats.columns for c in rf.feature_names_in_):
-        missing = [c for c in rf.feature_names_in_ if c not in feats.columns]
-        raise ValueError(f"{tag}: slice is missing columns {missing}")
-
-    # Call the new fast backtester
-    stats = _vectorized_backtest(rf, feats, prices, up, dn, gap)
-
-    # friendly per-model TXT
-    header = textwrap.dedent(f"""\
-        # Model  : {tag}
-        # Slice  : {START_DATE.date()} → {END_DATE.date()}  ({span_days} days)
-        # Thresh : up={up:.2f}  dn={dn:.2f}  gap={gap:.2f}
-    """)
-    body = (
-        f"Total return   : {stats['total_return']:+.2f}%\n"
-        f"Equity multiple: {stats['equity_mult']:.2f}\n"
-        f"Sharpe ratio   : {stats['sharpe']:.2f}\n"
-        f"Trades / Win%  : {stats['trades']} | {stats['win_rate']:.2f}%\n"
-    )
-    os.makedirs(RESULT_DIR, exist_ok=True)
-    with open(os.path.join(RESULT_DIR, f"{tag}.txt"), "w") as fh:
-        fh.write(header + body)
-
-    return {"model": tag, **stats}
-
-
-# ────────────────────────── main driver ───────────────────────────────────────
-def main() -> None:
-    feats, prices, span_days = _prep_slice()
-
+def main():
+    df_in, df_out = _prep_slices()
     paths = sorted(glob.glob(MODEL_GLOB))
-    print(f"▶  Evaluating {len(paths)} folds on 30-day slice using {N_CORES} core(s)…")
-
-    rows = Parallel(n_jobs=N_CORES, backend="loky", verbose=0)(
-        delayed(_run_one)(p, feats, prices, span_days) for p in paths
-    )
-
-    df = (pd.DataFrame(rows)
-            .sort_values("total_return", ascending=False)
-            .reset_index(drop=True))
-    df.to_csv("rf_30d_summary.csv", index=False)
-
-    print("\n✅  DONE – summary saved to rf_30d_summary.csv\n")
-    print(df.head(15).to_string(index=False,
-                                formatters={"total_return":"{:+.2f}%".format,
-                                            "sharpe":"{:.2f}".format}))
-
+    print(f"▶  Evaluating {len(paths)} folds on in-sample and out-of-sample slices using {N_CORES} core(s)…")
+    
+    rows = Parallel(n_jobs=N_CORES, backend="loky", verbose=5)(delayed(_run_one)(p, df_in, df_out) for p in paths)
+    
+    summary = pd.DataFrame([r for r in rows if r]).sort_values("out_return", ascending=False).reset_index(drop=True)
+        
+    print("\n✅  DONE – Combined Backtest Results\n")
+    
+    formatters={
+        "in_return":"{:,.2f}%".format,
+        "in_sharpe":"{:.2f}".format,
+        "in_accuracy":"{:.2f}%".format,
+        "in_precision":"{:.2f}%".format,
+        "in_recall":"{:.2f}%".format,
+        "out_return":"{:,.2f}%".format,
+        "out_sharpe":"{:.2f}".format,
+        "out_accuracy":"{:.2f}%".format,
+        "out_precision":"{:.2f}%".format,
+        "out_recall":"{:.2f}%".format,
+    }
+    
+    print(summary.to_string(index=False, formatters=formatters))
 
 if __name__ == "__main__":
     main()

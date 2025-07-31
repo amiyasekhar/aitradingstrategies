@@ -50,44 +50,47 @@ def _slice(df: pd.DataFrame,
 
 
 # ─────────────────────────────────────────────── vectorised RF back-test ──
-def _quick_backtest_rf(rf, df: pd.DataFrame, price: pd.Series,
-                       up: float, dn: float, gap: float) -> dict:
-    """
-    Vectorised replication of MinuteTradingEnv that is both
-    fast and realistic by including transaction costs.
-    """
+def _quick_backtest_rf(rf, df: pd.DataFrame, up: float, dn: float, gap: float) -> dict:
+    """Vectorised backtest where positions are held only when a signal is active."""
+    price = df["close"]
     X = df[rf.feature_names_in_]
     prob  = rf.predict_proba(X)[:, 1]
     gap_m = np.abs(prob - .5) >= gap
-    signal = np.where(prob > up,  1,
-              np.where(prob < dn, -1, 0))
-    signal = signal * gap_m
+    
+    desired_position = np.where(prob > up, 1, np.where(prob < dn, -1, 0))
+    desired_position = desired_position * gap_m
+    position = pd.Series(desired_position, index=df.index).shift(1).fillna(0)
 
-    pos = pd.Series(signal, index=df.index).replace(0, np.nan).ffill().fillna(0.).to_numpy()
-    rets = price.pct_change().shift(-1).fillna(0.).to_numpy()
-
-    # --- ADDED: Realistic Cost Calculation ---
-    pos_change = np.abs(np.diff(np.concatenate(([0.], pos))))
-    trade_cost = FEE + SLIPPAGE
-    costs = pos_change * trade_cost
-    pnl = pos * rets - costs
-    # --- END ---
-
-    equity = 1 + np.cumsum(pnl)
+    rets = price.pct_change().fillna(0.)
+    pnl = position * rets
+    trades = position.diff().abs()
+    costs = trades * (FEE + SLIPPAGE)
+    net_pnl = pnl - costs
+    
+    equity = 1 + np.cumsum(net_pnl)
     equity_s = pd.Series(equity, index=df.index)
 
-    win_mask = pos != 0
-    wins = ((pos > 0) & (rets > 0)) | ((pos < 0) & (rets < 0))
-    win_rate = float(wins[win_mask].mean() * 100) if win_mask.any() else 0.
+    in_trade = position != 0
+    # --- FIXED: Add .astype(bool) to prevent FutureWarning ---
+    trade_starts = in_trade & ~in_trade.shift(1).fillna(False).astype(bool)
+    trade_ids = trade_starts.cumsum()
+    trade_pnl = net_pnl[in_trade].groupby(trade_ids[in_trade]).sum()
+    
+    successful_trades = int((trade_pnl > 0).sum())
+    failed_trades = int((trade_pnl <= 0).sum())
+    
+    acc, prec, rec, _ = compute_signal_classification_metrics(position.to_numpy(), price)
 
     return {
-        "total_return": (equity[-1] - 1) * 100,
-        "equity_mult" : float(equity[-1]),
-        "sharpe"      : (pnl.mean() / pnl.std() * np.sqrt(252*6.5*60)) if pnl.std() else 0.,
-        "trades"      : int((pos_change > 0).sum()),
-        "win_rate"    : win_rate,
+        "total_return": (equity.iloc[-1] - 1) * 100,
+        "equity_mult" : float(equity.iloc[-1]),
+        "sharpe"      : (net_pnl.mean() / net_pnl.std() * np.sqrt(252*6.5*60)) if net_pnl.std() else 0.,
+        "successful_trades": successful_trades,
+        "failed_trades": failed_trades,
+        "accuracy": acc,
+        "precision": prec,
+        "recall": rec,
         "equity_s"    : equity_s,
-        "signal"      : signal,
     }
 
 
@@ -141,7 +144,7 @@ def main() -> None:
     # --- Path 1: Fast, Vectorized Backtest for RF models ---
     if not is_rl and args.fast:
         print("🚀 Running fast, vectorized backtest...")
-        res = _quick_backtest_rf(rf, raw, raw['close'], up, dn, gap)
+        res = _quick_backtest_rf(rf, raw, up, dn, gap)
         eq  = res["equity_s"]
         start, end = eq.index[[0, -1]]
         btc = (raw["close"].iloc[-1] / raw["close"].iloc[0] - 1) * 100
@@ -149,14 +152,9 @@ def main() -> None:
         print(f"\n🕒  Testing period: {start} → {end}")
         print(f"💰  Total return: {res['total_return']:+.2f}%")
         print(f"📉  Buy-and-hold BTC: {btc:+.2f}%")
-        print(f"📉  Trades taken: {res['trades']}  |  Win rate: {res['win_rate']:.2f} %")
+        print(f"📈  Successful Trades: {res['successful_trades']} | Failed Trades: {res['failed_trades']}")
         print(f"📊  Sharpe: {res['sharpe']:.2f}")
-
-        # Use the actual signals from the backtest result
-        acc, mp, mr, _ = compute_signal_classification_metrics(
-                res["signal"],
-                raw["close"])
-        print(f"🔍  Accuracy: {acc:.2%}  |  Macro-P {mp:.2%}  R {mr:.2%}")
+        print(f"🔍  Accuracy: {res['accuracy']:.2%} | Precision: {res['precision']:.2%} | Recall: {res['recall']:.2%}")
 
         em = eq.iloc[-1]
         mu, sig, var95 = bootstrap_equity(eq)
@@ -208,7 +206,6 @@ def main() -> None:
     print(f"📉  Trades taken: {st['Total Trades']}  |  Win rate: {st['Win Rate (%)']} %")
     print(f"📊  Sharpe: {compute_sharpe_ratio(equity_s):.2f}")
 
-    # Correctly call the metrics function with the actual actions taken
     acc, mp, mr, _ = compute_signal_classification_metrics(
         np.array(acts), pd.Series(prices, index=ts))
     print(f"🔍  Accuracy: {acc:.2%}  |  Macro-P {mp:.2%}  R {mr:.2%}")

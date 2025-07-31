@@ -18,9 +18,23 @@ COST_RT = 2 * (FEE + SLIPPAGE)
 
 # ────────────────────────────────────────────────────────────────────
 def make_labels(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Labels data based on whether the price is higher/lower
+    after a longer future period (e.g., 60 minutes).
+    """
     df = df.copy()
-    df["next_ret"] = df["close"].pct_change().shift(-1)
-    df["y"] = (df["next_ret"] > 0).astype(int)
+    # --- UPDATED: Set the prediction horizon to 60 minutes ---
+    horizon = 60 
+
+    # Calculate the future return over the defined horizon
+    future_ret = df["close"].pct_change(periods=horizon).shift(-horizon)
+    
+    # The label is 1 if the future return is positive, 0 otherwise
+    df["y"] = (future_ret > 0).astype(int)
+    
+    # Store the return itself for calculating sample weights
+    df["next_ret"] = future_ret
+
     return df.dropna().reset_index(drop=True)
 
 

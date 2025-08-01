@@ -1,29 +1,25 @@
 #!/usr/bin/env python3
 """
 backtest_all_models.py
-Vectorised evaluation of every RF fold on both an
-in-sample (training) and out-of-sample (hold-out) set.
+Vectorised evaluation for Random Forest Regressor models.
 """
 from __future__ import annotations
-import os, glob, textwrap, joblib, pandas as pd, numpy as np
+import os, glob, pandas as pd, numpy as np
+import joblib
 from joblib import Parallel, delayed
-from config import THRESH_UP, THRESH_DN, PROBA_GAP, FEE, SLIPPAGE, MODEL_DIR
-from utils.threshold_search import load_threshold
+from config import FEE, SLIPPAGE, MODEL_DIR
 from utils.metrics import compute_signal_classification_metrics
 
-# --- SETTINGS ---
 MODEL_GLOB = "models/rf_fold*.joblib"
 
-# Define the two periods for evaluation
 IN_SAMPLE_START = pd.Timestamp("2020-01-01", tz="UTC")
 IN_SAMPLE_END = pd.Timestamp("2025-01-31", tz="UTC")
 OUT_OF_SAMPLE_START = pd.Timestamp("2025-02-01", tz="UTC")
 OUT_OF_SAMPLE_END = pd.Timestamp("2025-07-30", tz="UTC")
 
-N_CORES = min(16, os.cpu_count() or 4)
+N_CORES = 4
 
 def _prep_slices():
-    """Prepares both the in-sample and out-of-sample data slices."""
     try:
         raw_full = pd.read_parquet("full_history.parquet")
     except FileNotFoundError:
@@ -38,21 +34,21 @@ def _prep_slices():
     
     return df_in, df_out
 
-def _vectorized_backtest(rf, df: pd.DataFrame, up: float, dn: float, gap: float) -> dict:
-    """Runs a backtest where positions are held only when a signal is active."""
+def _vectorized_backtest(rf, df: pd.DataFrame) -> dict:
+    """Runs a backtest for a regressor model."""
     if df.empty:
         return {
             "return": 0.0, "sharpe": 0.0, "successful_trades": 0, "failed_trades": 0,
             "accuracy": 0.0, "precision": 0.0, "recall": 0.0
         }
 
+    PROFIT_THRESHOLD = FEE + SLIPPAGE
     price = df["close"]
     X = df[rf.feature_names_in_]
-    prob = rf.predict_proba(X)[:, 1]
-    gap_m = np.abs(prob - .5) >= gap
-
-    desired_position = np.where(prob > up,  1, np.where(prob < dn, -1, 0))
-    desired_position = desired_position * gap_m
+    
+    predicted_returns = rf.predict(X)
+    desired_position = np.where(predicted_returns > PROFIT_THRESHOLD, 1,
+                         np.where(predicted_returns < -PROFIT_THRESHOLD, -1, 0))
     position = pd.Series(desired_position, index=df.index).shift(1).fillna(0)
 
     rets = price.pct_change().fillna(0.)
@@ -63,14 +59,14 @@ def _vectorized_backtest(rf, df: pd.DataFrame, up: float, dn: float, gap: float)
     equity = 1 + np.cumsum(net_pnl)
 
     in_trade = position != 0
-    # --- FIXED: Add .astype(bool) to prevent FutureWarning ---
     trade_starts = in_trade & ~in_trade.shift(1).fillna(False).astype(bool)
     trade_ids = trade_starts.cumsum()
     trade_pnl = net_pnl[in_trade].groupby(trade_ids[in_trade]).sum()
     
     successful_trades = int((trade_pnl > 0).sum())
     failed_trades = int((trade_pnl <= 0).sum())
-
+    
+    # --- ADDED: Calculate classification metrics for the regressor's signals ---
     acc, prec, rec, _ = compute_signal_classification_metrics(position.to_numpy(), price)
     
     return {
@@ -84,15 +80,13 @@ def _vectorized_backtest(rf, df: pd.DataFrame, up: float, dn: float, gap: float)
     }
 
 def _run_one(model_path: str, df_in: pd.DataFrame, df_out: pd.DataFrame):
-    """Runs both backtests for a single model and returns all metrics."""
     tag = os.path.splitext(os.path.basename(model_path))[0]
     rf = joblib.load(model_path)
-    tuned = load_threshold("models", tag) or {}
-    up, dn, gap = tuned.get("THRESH_UP", THRESH_UP), tuned.get("THRESH_DN", THRESH_DN), tuned.get("PROBA_GAP", PROBA_GAP)
     
-    stats_in = _vectorized_backtest(rf, df_in, up, dn, gap)
-    stats_out = _vectorized_backtest(rf, df_out, up, dn, gap)
+    stats_in = _vectorized_backtest(rf, df_in)
+    stats_out = _vectorized_backtest(rf, df_out)
     
+    # --- UPDATED: Return all metrics for both in-sample and out-of-sample ---
     return {
         "model": tag,
         "in_return": stats_in["return"],
@@ -114,13 +108,13 @@ def _run_one(model_path: str, df_in: pd.DataFrame, df_out: pd.DataFrame):
 def main():
     df_in, df_out = _prep_slices()
     paths = sorted(glob.glob(MODEL_GLOB))
-    print(f"▶  Evaluating {len(paths)} folds on in-sample and out-of-sample slices using {N_CORES} core(s)…")
+    print(f"▶  Evaluating {len(paths)} regressor folds using {N_CORES} core(s)…")
     
     rows = Parallel(n_jobs=N_CORES, backend="loky", verbose=5)(delayed(_run_one)(p, df_in, df_out) for p in paths)
     
     summary = pd.DataFrame([r for r in rows if r]).sort_values("out_return", ascending=False).reset_index(drop=True)
-        
-    print("\n✅  DONE – Combined Backtest Results\n")
+    
+    print("\n✅  DONE – Combined Regressor Backtest Results\n")
     
     formatters={
         "in_return":"{:,.2f}%".format,

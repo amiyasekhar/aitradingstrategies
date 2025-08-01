@@ -3,22 +3,24 @@ import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, classification_report
+from sklearn.model_selection import GridSearchCV
 import pandas_ta as ta
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Parameters
 symbol = 'BTC/USDT'
 timeframe = '1m'
 start_date = '2022-05-01'
-in_sample_end = '2022-10-31'
-out_sample_start = '2025-01-01'
 threshold = 0.0005
 fees = 0.001
 initial_capital = 1000.0
 position_size_fraction = 0.2
 stop_loss = -0.005
 max_hold_minutes = 5
-prob_threshold = 0.6  # For proba-based signals
+prob_threshold = 0.6
+train_days = 180  # WFO train window
+# --- UPDATED: Changed the walk-forward test period to 180 days ---
+test_days = 180    # WFO test window
 
 # Initialize exchange
 exchange = ccxt.binance({'enableRateLimit': True})
@@ -40,15 +42,16 @@ def fetch_all_ohlcv(exchange, symbol, timeframe, since):
             break
     return ohlcv
 
-# Fetch data
+# Fetch data up to current
 since = exchange.parse8601(f'{start_date}T00:00:00Z')
 bars = fetch_all_ohlcv(exchange, symbol, timeframe, since)
 df = pd.DataFrame(bars, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
 df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
 df.set_index('timestamp', inplace=True)
 
-# Enhanced features from research
+# Enhanced features
 df['return'] = df['close'].pct_change()
+df['log_return'] = np.log(df['close']).diff()
 df['lagged_return_1'] = df['return'].shift(1)
 df['lagged_return_5'] = df['return'].rolling(5).mean().shift(1)
 df['rsi14'] = ta.rsi(df['close'], length=14)
@@ -74,6 +77,13 @@ df['atr'] = ta.atr(df['high'], df['low'], df['close'])
 df['willr'] = ta.willr(df['high'], df['low'], df['close'])
 df['cmf'] = ta.cmf(df['high'], df['low'], df['close'], df['volume'])
 df['obv'] = ta.obv(df['close'], df['volume'])
+df['mfi'] = ta.mfi(df['high'], df['low'], df['close'], df['volume'])
+df['adl'] = ta.ad(df['high'], df['low'], df['close'], df['volume'])
+kc = ta.kc(df['high'], df['low'], df['close'])
+df['kc_upper'] = kc['KCUe_20_2']
+df['kc_lower'] = kc['KCLe_20_2']
+psar = ta.psar(df['high'], df['low'], df['close'])
+df['psar'] = psar['PSARl_0.02_0.2']
 df.dropna(inplace=True)
 
 # Labels
@@ -82,21 +92,26 @@ df['label'] = np.where(df['future_return'] > threshold, 1,
                        np.where(df['future_return'] < -threshold, -1, 0))
 df.dropna(inplace=True)
 
-# Split data
-in_sample = df.loc[:in_sample_end]
-out_sample = df.loc[out_sample_start:]
-
-# Features list
+# Updated features list
 features = ['lagged_return_1', 'lagged_return_5', 'rsi14', 'rsi30', 'rsi200', 'macd', 'ema_5', 'ema_20', 'vol_change', 
-            'bb_upper', 'bb_lower', 'adx', 'mom30', 'k30', 'd30', 'k200', 'd200', 'cci', 'atr', 'willr', 'cmf', 'obv']
+            'bb_upper', 'bb_lower', 'adx', 'mom30', 'k30', 'd30', 'k200', 'd200', 'cci', 'atr', 'willr', 'cmf', 'obv',
+            'log_return', 'mfi', 'adl', 'kc_upper', 'kc_lower', 'psar']
 
-# Train XGBoost (map labels to 0,1,2)
-X_train = in_sample[features]
-y_train = in_sample['label'] + 1  # -1->0, 0->1, 1->2
-model = XGBClassifier(n_estimators=50, max_depth=5, scale_pos_weight=3, random_state=42, eval_metric='mlogloss')
-model.fit(X_train, y_train)
+# Hyperparameter tuning function
+def tune_xgboost(X, y):
+    param_grid = {
+        'n_estimators': [50, 100],
+        'max_depth': [3, 5],
+        'learning_rate': [0.01, 0.1],
+        'subsample': [0.8, 1.0]
+    }
+    model = XGBClassifier(scale_pos_weight=3, random_state=42, eval_metric='mlogloss')
+    grid_search = GridSearchCV(model, param_grid, cv=3, scoring='f1_macro')
+    grid_search.fit(X, y)
+    print(f"Best params: {grid_search.best_params_}")
+    return grid_search.best_estimator_
 
-# Backtest function with proba
+# Backtest function
 def backtest(df, model, period_name):
     if df.empty:
         print(f"\n{period_name} data is empty.")
@@ -105,10 +120,10 @@ def backtest(df, model, period_name):
     df = df.copy()
     X = df[features]
     probs = model.predict_proba(X)
-    df['prob_down'] = probs[:, 0]  # Prob of -1 (mapped 0)
-    df['prob_neutral'] = probs[:, 1]  # Prob of 0 (mapped 1)
-    df['prob_up'] = probs[:, 2]  # Prob of 1 (mapped 2)
-    df['predicted'] = model.predict(X) - 1  # For metrics
+    df['prob_down'] = probs[:, 0]
+    df['prob_neutral'] = probs[:, 1]
+    df['prob_up'] = probs[:, 2]
+    df['predicted'] = model.predict(X) - 1
     
     position = 0
     capital = initial_capital
@@ -162,7 +177,7 @@ def backtest(df, model, period_name):
     recall = recall_score(y_true, y_pred, average='macro', zero_division=0)
     
     print(f"\n{period_name} Results:")
-    print(f"Total Return: {total_return:.2%} (vs Buy-and-Hold: {bh_return:.2%})")
+    print(f"Total Return: {total_return:.2%} (vs Buy--Hold: {bh_return:.2%})")
     print(f"Sharpe Ratio: {sharpe:.2f}")
     print(f"Accuracy: {accuracy:.2f}")
     print(f"Precision: {precision:.2f}")
@@ -171,6 +186,34 @@ def backtest(df, model, period_name):
     
     return total_return, sharpe, accuracy, precision, recall
 
-# Run
-backtest(in_sample, model, "In-Sample")
-backtest(out_sample, model, "Out-of-Sample")
+# Walk-Forward Optimization
+start_dt = pd.to_datetime(start_date)
+end_dt = df.index.max()
+results = []
+current_start = start_dt
+
+while current_start + timedelta(days=train_days + test_days) <= end_dt:
+    train_end = current_start + timedelta(days=train_days)
+    test_end = train_end + timedelta(days=test_days)
+    
+    train_df = df.loc[current_start:train_end]
+    test_df = df.loc[train_end:test_end]
+    
+    if train_df.empty or test_df.empty:
+        break
+    
+    X_train = train_df[features]
+    y_train = train_df['label'] + 1
+    
+    model = tune_xgboost(X_train, y_train)
+    
+    ret, shp, acc, prec, rec = backtest(test_df, model, f"WFO Window: {train_end} to {test_end}")
+    results.append({'return': ret, 'sharpe': shp, 'accuracy': acc, 'precision': prec, 'recall': rec})
+    
+    current_start += timedelta(days=test_days)
+
+# Average results
+if results:
+    avg_results = {k: np.mean([d[k] for d in results]) for k in results[0]}
+    print("\nAverage WFO Results:")
+    print(avg_results)

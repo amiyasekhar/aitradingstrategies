@@ -1708,38 +1708,98 @@ Fetched 1707000 candles up to 2025-07-29 15:19:00.001000
 Fetched 1708000 candles up to 2025-07-30 07:59:00.001000
 Fetched 1709000 candles up to 2025-07-31 00:39:00.001000
 Fetched 1710000 candles up to 2025-07-31 17:19:00.001000
-Fetched 1710814 candles up to 2025-08-01 06:53:00.001000
+Fetched 1711000 candles up to 2025-08-01 09:59:00.001000
+Fetched 1711277 candles up to 2025-08-01 14:36:00.001000
+Best params: {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 50, 'subsample': 0.8}
 
-In-Sample Results:
-Total Return: 4.75% (vs Buy-and-Hold: -46.09%)
-Sharpe Ratio: 4.49
-Accuracy: 0.63
-Precision: 0.54
+WFO Window: 2022-10-28 00:00:00 to 2023-04-26 00:00:00 Results:
+Total Return: -0.10% (vs Buy--Hold: 39.53%)
+Sharpe Ratio: -0.14
+Accuracy: 0.77
+Precision: 0.56
+Recall: 0.40
+              precision    recall  f1-score   support
+
+          -1       0.42      0.10      0.16     12131
+           0       0.79      0.98      0.88    100153
+           1       0.45      0.11      0.17     18686
+
+    accuracy                           0.77    130970
+   macro avg       0.56      0.40      0.40    130970
+weighted avg       0.71      0.77      0.71    130970
+
+Best params: {'learning_rate': 0.01, 'max_depth': 5, 'n_estimators': 50, 'subsample': 1.0}
+
+WFO Window: 2023-04-26 00:00:00 to 2023-10-23 00:00:00 Results:
+Total Return: 0.00% (vs Buy--Hold: 5.99%)
+Sharpe Ratio: 0.00
+Accuracy: 0.84
+Precision: 0.55
+Recall: 0.36
+              precision    recall  f1-score   support
+
+          -1       0.40      0.05      0.09      8163
+           0       0.85      0.99      0.91    109944
+           1       0.41      0.04      0.07     13058
+
+    accuracy                           0.84    131165
+   macro avg       0.55      0.36      0.36    131165
+weighted avg       0.78      0.84      0.78    131165
+
+Best params: {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 100, 'subsample': 0.8}
+
+WFO Window: 2023-10-23 00:00:00 to 2024-04-20 00:00:00 Results:
+Total Return: -0.45% (vs Buy--Hold: 113.37%)
+Sharpe Ratio: -0.69
+Accuracy: 0.67
+Precision: 0.49
 Recall: 0.42
               precision    recall  f1-score   support
 
-          -1       0.47      0.18      0.26     52964
-           0       0.66      0.95      0.78    159555
-           1       0.48      0.14      0.21     52238
+          -1       0.31      0.21      0.25     16894
+           0       0.73      0.91      0.81     89574
+           1       0.42      0.15      0.22     25913
 
-    accuracy                           0.63    264757
-   macro avg       0.54      0.42      0.42    264757
-weighted avg       0.59      0.63      0.56    264757
+    accuracy                           0.67    132381
+   macro avg       0.49      0.42      0.43    132381
+weighted avg       0.62      0.67      0.62    132381
 
+Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 50, 'subsample': 1.0}
 
-Out-of-Sample Results:
-Total Return: -3.96% (vs Buy-and-Hold: 23.91%)
-Sharpe Ratio: -3.81
-Accuracy: 0.63
-Precision: 0.44
-Recall: 0.46
+WFO Window: 2024-04-20 00:00:00 to 2024-10-17 00:00:00 Results:
+Total Return: 0.00% (vs Buy--Hold: 5.79%)
+Sharpe Ratio: 0.00
+Accuracy: 0.71
+Precision: 0.51
+Recall: 0.36
               precision    recall  f1-score   support
 
-          -1       0.23      0.28      0.25     41025
-           0       0.85      0.74      0.79    223414
-           1       0.26      0.37      0.30     41014
+          -1       0.40      0.02      0.04     15242
+           0       0.72      0.98      0.83     91235
+           1       0.42      0.09      0.15     23810
 
-    accuracy                           0.63    305453
-   macro avg       0.44      0.46      0.45    305453
-weighted avg       0.69      0.63      0.65    305453
+    accuracy                           0.71    130287
+   macro avg       0.51      0.36      0.34    130287
+weighted avg       0.63      0.71      0.61    130287
 
+Best params: {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 50, 'subsample': 1.0}
+
+WFO Window: 2024-10-17 00:00:00 to 2025-04-15 00:00:00 Results:
+Total Return: -0.03% (vs Buy--Hold: 25.17%)
+Sharpe Ratio: -0.04
+Accuracy: 0.67
+Precision: 0.50
+Recall: 0.40
+              precision    recall  f1-score   support
+
+          -1       0.36      0.08      0.13     17695
+           0       0.70      0.95      0.80     85394
+           1       0.45      0.17      0.24     27228
+
+    accuracy                           0.67    130317
+   macro avg       0.50      0.40      0.39    130317
+weighted avg       0.60      0.67      0.59    130317
+
+
+Average WFO Results:
+{'return': np.float64(-0.0011715049120867207), 'sharpe': np.float64(-0.17245044771567036), 'accuracy': np.float64(0.7316434418976595), 'precision': np.float64(0.5212978399740937), 'recall': np.float64(0.3885588914061488)}

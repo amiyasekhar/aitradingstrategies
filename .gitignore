@@ -17,6 +17,7 @@ __pycache__/
 
 # ─ Model artefacts / data ────────────────
 models/
+old_strategy/
 backtest_output.txt
 backtest_output_rf.txt
 data_cache/

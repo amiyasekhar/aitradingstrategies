@@ -34,19 +34,29 @@ def run_wfo_for_timeframe(symbol, timeframe, params):
         METRIC_CONFIG = {
             'netflow': {'path': 'exchange-flows/netflow', 'params': {'exchange': 'all_exchange'}, 'data_key': 'netflow_total'},
             'active_addresses': {'path': 'network-data/addresses-count', 'params': {}, 'data_key': 'addresses_count_active'},
-            'whale_ratio': {'path': 'flow-indicator/exchange-whale-ratio', 'params': {'exchange': 'all_exchange'}, 'data_key': 'exchange_whale_ratio'}
+            'whale_ratio': {'path': 'flow-indicator/exchange-whale-ratio', 'params': {'exchange': 'all_exchange'}, 'data_key': 'exchange_whale_ratio'},
+            'nvt': {'path': 'network-indicator/nvt', 'params': {}, 'data_key': 'nvt'},
+            'netflow_total': {'path': 'network-indicator/nvt', 'params': {'miner': 'all_miner'}, 'data_key': 'netflow_total'},
+            'open_interest': {'path': 'market-data/open-interest', 'params': {'exchange': 'all_exchange'}, 'data_key': 'open_interest'}
+
         }
     elif asset_ticker == 'eth':
         METRIC_CONFIG = {
             'netflow': {'path': 'exchange-flows/netflow', 'params': {'exchange': 'all_exchange'}, 'data_key': 'netflow_total'},
             'active_addresses': {'path': 'network-data/addresses-count', 'params': {}, 'data_key': 'addresses_count_active'},
-            'whale_activity': {'path': 'flow-indicator/exchange-inflow-supply-distribution', 'params': {'exchange': 'all_exchange'}, 'data_key': 'over_10k'}
+            'whale_activity': {'path': 'flow-indicator/exchange-inflow-supply-distribution', 'params': {'exchange': 'all_exchange'}, 'data_key': 'over_10k'},
+            'open_interest': {'path': 'market-data/open-interest', 'params': {'exchange': 'all_exchange'}, 'data_key': 'open_interest'}
         }
     elif asset_ticker == 'xrp':
         METRIC_CONFIG = {
-            'exchange_supply_ratio': {'path': 'exchange-flows/supply-ratio', 'params': {'exchange': 'all_exchange'}, 'data_key': 'supply_ratio'},
+            # 'exchange_supply_ratio': {'path': 'exchange-flows/supply-ratio', 'params': {'exchange': 'all_exchange'}, 'data_key': 'supply_ratio'},
             'transactions_count': {'path': 'network-data/transactions-count', 'params': {}, 'data_key': 'transactions_count'},
-            'whale_movements': {'path': 'entity-flows/whale-movements', 'params': {}, 'data_key': 'volume'}
+            'whale_movements': {'path': 'entity-flows/whale-movements', 'params': {}, 'data_key': 'volume'},
+            'exchange-supply-ratio': {'path': 'flow-indicator/exchange-supply-ratio', 'params': {'exchange': 'all_exchange'}, 'data_key': 'exchange_supply_ratio'},
+            'nvt': {'path': 'network-indicator/nvt', 'params': {}, 'data_key': 'nvt'},
+            'open_interest': {'path': 'market-data/open-interest', 'params': {'exchange': 'all_exchange'}, 'data_key': 'open_interest'}
+
+
         }
     else:
         METRIC_CONFIG = {}

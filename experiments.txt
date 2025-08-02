@@ -16,7 +16,17 @@ Best params: {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 100, 'subsam
 WFO Window: 2025-05-04 00:00:00 to 2025-05-19 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: 11.18%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.32      0.22      0.26      1131
+           0       0.55      0.74      0.63      2015
+           1       0.34      0.24      0.29      1175
+
+    accuracy                           0.47      4321
+   macro avg       0.40      0.40      0.39      4321
+weighted avg       0.43      0.47      0.44      4321
+
 
 Tuning model for training period ending 2025-05-19 00:00:00...
 Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 100, 'subsample': 0.8}
@@ -24,7 +34,17 @@ Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 100, 'subsam
 WFO Window: 2025-05-19 00:00:00 to 2025-06-03 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: -0.80%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.33      0.25      0.29      1244
+           0       0.50      0.60      0.55      1838
+           1       0.34      0.33      0.34      1239
+
+    accuracy                           0.42      4321
+   macro avg       0.39      0.39      0.39      4321
+weighted avg       0.41      0.42      0.41      4321
+
 
 Tuning model for training period ending 2025-06-03 00:00:00...
 Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 50, 'subsample': 0.8}
@@ -32,7 +52,17 @@ Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 50, 'subsamp
 WFO Window: 2025-06-03 00:00:00 to 2025-06-18 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: -1.11%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.38      0.20      0.26      1037
+           0       0.59      0.85      0.70      2248
+           1       0.37      0.18      0.25      1036
+
+    accuracy                           0.54      4321
+   macro avg       0.45      0.41      0.40      4321
+weighted avg       0.49      0.54      0.48      4321
+
 
 Tuning model for training period ending 2025-06-18 00:00:00...
 Best params: {'learning_rate': 0.01, 'max_depth': 5, 'n_estimators': 50, 'subsample': 1.0}
@@ -40,7 +70,17 @@ Best params: {'learning_rate': 0.01, 'max_depth': 5, 'n_estimators': 50, 'subsam
 WFO Window: 2025-06-18 00:00:00 to 2025-07-03 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: 4.18%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.36      0.20      0.26      1004
+           0       0.60      0.89      0.72      2296
+           1       0.40      0.13      0.20      1021
+
+    accuracy                           0.55      4321
+   macro avg       0.45      0.41      0.39      4321
+weighted avg       0.50      0.55      0.49      4321
+
 
 Tuning model for training period ending 2025-07-03 00:00:00...
 Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 50, 'subsample': 0.8}
@@ -48,7 +88,17 @@ Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 50, 'subsam
 WFO Window: 2025-07-03 00:00:00 to 2025-07-18 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: 9.55%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.35      0.26      0.30       947
+           0       0.63      0.86      0.73      2386
+           1       0.42      0.14      0.21       988
+
+    accuracy                           0.57      4321
+   macro avg       0.47      0.42      0.41      4321
+weighted avg       0.52      0.57      0.51      4321
+
 
 Tuning model for training period ending 2025-07-18 00:00:00...
 Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 50, 'subsample': 1.0}
@@ -56,12 +106,26 @@ Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 50, 'subsam
 WFO Window: 2025-07-18 00:00:00 to 2025-08-02 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: -5.15%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.34      0.31      0.33      1094
+           0       0.57      0.80      0.67      2141
+           1       0.36      0.11      0.17      1086
+
+    accuracy                           0.50      4321
+   macro avg       0.43      0.41      0.39      4321
+weighted avg       0.46      0.50      0.46      4321
+
 
 Average WFO Results:
-  Average Return: 0.00%
+  Average Return: 0.00
   Average Sharpe: 0.00
-  Average Trades per Period: 0
+  Average Successful: 0.00
+  Average Failed: 0.00
+  Average Accuracy: 0.51
+  Average Precision: 0.43
+  Average Recall: 0.41
 
 ==================================================
 RUNNING EXPERIMENT FOR TIMEFRAME: 15m
@@ -80,7 +144,17 @@ Best params: {'learning_rate': 0.01, 'max_depth': 5, 'n_estimators': 50, 'subsam
 WFO Window: 2025-05-04 00:00:00 to 2025-05-19 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: 11.03%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.33      0.42      0.37       403
+           0       0.51      0.52      0.52       604
+           1       0.37      0.28      0.32       434
+
+    accuracy                           0.42      1441
+   macro avg       0.41      0.40      0.40      1441
+weighted avg       0.42      0.42      0.42      1441
+
 
 Tuning model for training period ending 2025-05-19 00:00:00...
 Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 50, 'subsample': 1.0}
@@ -88,7 +162,17 @@ Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 50, 'subsamp
 WFO Window: 2025-05-19 00:00:00 to 2025-06-03 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: -0.37%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.36      0.25      0.30       449
+           0       0.48      0.40      0.44       541
+           1       0.35      0.53      0.42       451
+
+    accuracy                           0.39      1441
+   macro avg       0.40      0.39      0.39      1441
+weighted avg       0.40      0.39      0.39      1441
+
 
 Tuning model for training period ending 2025-06-03 00:00:00...
 Best params: {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 50, 'subsample': 1.0}
@@ -96,7 +180,17 @@ Best params: {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 50, 'subsamp
 WFO Window: 2025-06-03 00:00:00 to 2025-06-18 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: -1.48%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.31      0.18      0.23       382
+           0       0.54      0.79      0.64       675
+           1       0.36      0.22      0.27       384
+
+    accuracy                           0.47      1441
+   macro avg       0.40      0.39      0.38      1441
+weighted avg       0.43      0.47      0.43      1441
+
 
 Tuning model for training period ending 2025-06-18 00:00:00...
 Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 100, 'subsample': 1.0}
@@ -104,7 +198,17 @@ Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 100, 'subsa
 WFO Window: 2025-06-18 00:00:00 to 2025-07-03 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: 4.14%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.45      0.17      0.25       367
+           0       0.55      0.88      0.68       703
+           1       0.40      0.18      0.25       371
+
+    accuracy                           0.52      1441
+   macro avg       0.46      0.41      0.39      1441
+weighted avg       0.48      0.52      0.46      1441
+
 
 Tuning model for training period ending 2025-07-03 00:00:00...
 Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 100, 'subsample': 0.8}
@@ -112,7 +216,17 @@ Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 100, 'subsa
 WFO Window: 2025-07-03 00:00:00 to 2025-07-18 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: 9.32%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.35      0.23      0.27       374
+           0       0.55      0.82      0.66       697
+           1       0.35      0.15      0.21       370
+
+    accuracy                           0.50      1441
+   macro avg       0.42      0.40      0.38      1441
+weighted avg       0.45      0.50      0.44      1441
+
 
 Tuning model for training period ending 2025-07-18 00:00:00...
 Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 50, 'subsample': 1.0}
@@ -120,12 +234,26 @@ Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 50, 'subsam
 WFO Window: 2025-07-18 00:00:00 to 2025-08-02 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: -4.79%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.36      0.31      0.33       406
+           0       0.52      0.77      0.62       633
+           1       0.39      0.15      0.22       402
+
+    accuracy                           0.47      1441
+   macro avg       0.43      0.41      0.39      1441
+weighted avg       0.44      0.47      0.43      1441
+
 
 Average WFO Results:
-  Average Return: 0.00%
+  Average Return: 0.00
   Average Sharpe: 0.00
-  Average Trades per Period: 0
+  Average Successful: 0.00
+  Average Failed: 0.00
+  Average Accuracy: 0.46
+  Average Precision: 0.42
+  Average Recall: 0.40
 
 ==================================================
 RUNNING EXPERIMENT FOR TIMEFRAME: 1h
@@ -144,7 +272,17 @@ Best params: {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 50, 'subsamp
 WFO Window: 2025-05-04 00:00:00 to 2025-05-19 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: 9.78%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.36      0.36      0.36       133
+           0       0.23      0.11      0.15        91
+           1       0.36      0.48      0.41       137
+
+    accuracy                           0.34       361
+   macro avg       0.32      0.32      0.31       361
+weighted avg       0.33      0.34      0.33       361
+
 
 Tuning model for training period ending 2025-05-19 00:00:00...
 Best params: {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 50, 'subsample': 1.0}
@@ -152,7 +290,17 @@ Best params: {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 50, 'subsamp
 WFO Window: 2025-05-19 00:00:00 to 2025-06-03 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: 0.97%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.38      0.42      0.40       132
+           0       0.29      0.08      0.13        95
+           1       0.36      0.51      0.42       134
+
+    accuracy                           0.36       361
+   macro avg       0.34      0.34      0.32       361
+weighted avg       0.35      0.36      0.34       361
+
 
 Tuning model for training period ending 2025-06-03 00:00:00...
 Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 100, 'subsample': 1.0}
@@ -160,7 +308,17 @@ Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 100, 'subsam
 WFO Window: 2025-06-03 00:00:00 to 2025-06-18 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: -1.36%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.32      0.42      0.36       125
+           0       0.20      0.09      0.12       100
+           1       0.34      0.37      0.35       136
+
+    accuracy                           0.31       361
+   macro avg       0.28      0.29      0.28       361
+weighted avg       0.29      0.31      0.29       361
+
 
 Tuning model for training period ending 2025-06-18 00:00:00...
 Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 50, 'subsample': 0.8}
@@ -168,7 +326,17 @@ Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 50, 'subsamp
 WFO Window: 2025-06-18 00:00:00 to 2025-07-03 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: 3.88%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.28      0.49      0.36       111
+           0       0.36      0.11      0.16       132
+           1       0.35      0.38      0.36       118
+
+    accuracy                           0.31       361
+   macro avg       0.33      0.32      0.29       361
+weighted avg       0.33      0.31      0.29       361
+
 
 Tuning model for training period ending 2025-07-03 00:00:00...
 Best params: {'learning_rate': 0.01, 'max_depth': 5, 'n_estimators': 50, 'subsample': 1.0}
@@ -176,7 +344,17 @@ Best params: {'learning_rate': 0.01, 'max_depth': 5, 'n_estimators': 50, 'subsam
 WFO Window: 2025-07-03 00:00:00 to 2025-07-18 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: 9.94%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.35      0.50      0.41       113
+           0       0.38      0.35      0.36       119
+           1       0.43      0.29      0.35       129
+
+    accuracy                           0.38       361
+   macro avg       0.38      0.38      0.37       361
+weighted avg       0.39      0.38      0.37       361
+
 
 Tuning model for training period ending 2025-07-18 00:00:00...
 Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 100, 'subsample': 0.8}
@@ -184,12 +362,26 @@ Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 100, 'subsam
 WFO Window: 2025-07-18 00:00:00 to 2025-08-02 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: -4.94%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.43      0.33      0.37       126
+           0       0.39      0.31      0.35       112
+           1       0.38      0.54      0.45       123
+
+    accuracy                           0.40       361
+   macro avg       0.40      0.39      0.39       361
+weighted avg       0.40      0.40      0.39       361
+
 
 Average WFO Results:
-  Average Return: 0.00%
+  Average Return: 0.00
   Average Sharpe: 0.00
-  Average Trades per Period: 0
+  Average Successful: 0.00
+  Average Failed: 0.00
+  Average Accuracy: 0.35
+  Average Precision: 0.34
+  Average Recall: 0.34
 
 ==================================================
 RUNNING EXPERIMENT FOR TIMEFRAME: 4h
@@ -208,7 +400,17 @@ Best params: {'learning_rate': 0.01, 'max_depth': 5, 'n_estimators': 50, 'subsam
 WFO Window: 2025-05-04 00:00:00 to 2025-05-19 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: 8.24%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.39      0.27      0.32        33
+           0       0.43      0.25      0.32        24
+           1       0.41      0.65      0.50        34
+
+    accuracy                           0.41        91
+   macro avg       0.41      0.39      0.38        91
+weighted avg       0.41      0.41      0.39        91
+
 
 Tuning model for training period ending 2025-05-19 00:00:00...
 Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 50, 'subsample': 1.0}
@@ -216,7 +418,17 @@ Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 50, 'subsam
 WFO Window: 2025-05-19 00:00:00 to 2025-06-03 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: 1.81%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.57      0.33      0.42        36
+           0       0.24      0.17      0.20        24
+           1       0.42      0.71      0.52        31
+
+    accuracy                           0.42        91
+   macro avg       0.41      0.40      0.38        91
+weighted avg       0.43      0.42      0.40        91
+
 
 Tuning model for training period ending 2025-06-03 00:00:00...
 Best params: {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 50, 'subsample': 1.0}
@@ -224,7 +436,17 @@ Best params: {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 50, 'subsamp
 WFO Window: 2025-06-03 00:00:00 to 2025-06-18 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: -0.28%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.48      0.41      0.44        34
+           0       0.33      0.17      0.23        23
+           1       0.42      0.62      0.50        34
+
+    accuracy                           0.43        91
+   macro avg       0.41      0.40      0.39        91
+weighted avg       0.42      0.43      0.41        91
+
 
 Tuning model for training period ending 2025-06-18 00:00:00...
 Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 100, 'subsample': 1.0}
@@ -232,7 +454,17 @@ Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 100, 'subsa
 WFO Window: 2025-06-18 00:00:00 to 2025-07-03 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: 3.27%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.37      0.62      0.46        26
+           0       0.60      0.09      0.16        33
+           1       0.44      0.59      0.51        32
+
+    accuracy                           0.42        91
+   macro avg       0.47      0.43      0.38        91
+weighted avg       0.48      0.42      0.37        91
+
 
 Tuning model for training period ending 2025-07-03 00:00:00...
 Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 50, 'subsample': 1.0}
@@ -240,7 +472,17 @@ Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 50, 'subsamp
 WFO Window: 2025-07-03 00:00:00 to 2025-07-18 00:00:00 Results:
 Total Return: -0.12% (vs Buy-and-Hold: 10.67%)
 Sharpe Ratio: -2.99
-Trade Count: 4
+Successful Trades: 2 | Failed Trades: 2
+              precision    recall  f1-score   support
+
+          -1       0.30      0.54      0.38        26
+           0       0.29      0.13      0.18        31
+           1       0.47      0.41      0.44        34
+
+    accuracy                           0.35        91
+   macro avg       0.35      0.36      0.33        91
+weighted avg       0.36      0.35      0.33        91
+
 
 Tuning model for training period ending 2025-07-18 00:00:00...
 Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 50, 'subsample': 1.0}
@@ -248,12 +490,26 @@ Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 50, 'subsamp
 WFO Window: 2025-07-18 00:00:00 to 2025-08-02 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: -5.25%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.46      0.22      0.30        27
+           0       0.42      0.44      0.43        36
+           1       0.38      0.54      0.44        28
+
+    accuracy                           0.41        91
+   macro avg       0.42      0.40      0.39        91
+weighted avg       0.42      0.41      0.40        91
+
 
 Average WFO Results:
-  Average Return: -0.02%
+  Average Return: -0.00
   Average Sharpe: -0.50
-  Average Trades per Period: 1
+  Average Successful: 0.33
+  Average Failed: 0.33
+  Average Accuracy: 0.40
+  Average Precision: 0.41
+  Average Recall: 0.40
 
 ==================================================
 RUNNING EXPERIMENT FOR TIMEFRAME: 1d
@@ -272,7 +528,17 @@ Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 50, 'subsam
 WFO Window: 2025-05-04 00:00:00 to 2025-05-19 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: 11.98%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.25      0.50      0.33         4
+           0       0.38      0.50      0.43         6
+           1       0.00      0.00      0.00         6
+
+    accuracy                           0.31        16
+   macro avg       0.21      0.33      0.25        16
+weighted avg       0.20      0.31      0.24        16
+
 
 Tuning model for training period ending 2025-05-19 00:00:00...
 Best params: {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 50, 'subsample': 0.8}
@@ -280,7 +546,17 @@ Best params: {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 50, 'subsamp
 WFO Window: 2025-05-19 00:00:00 to 2025-06-03 00:00:00 Results:
 Total Return: 0.14% (vs Buy-and-Hold: -0.19%)
 Sharpe Ratio: 1.87
-Trade Count: 4
+Successful Trades: 3 | Failed Trades: 1
+              precision    recall  f1-score   support
+
+          -1       0.33      0.20      0.25         5
+           0       0.38      0.60      0.46         5
+           1       0.40      0.33      0.36         6
+
+    accuracy                           0.38        16
+   macro avg       0.37      0.38      0.36        16
+weighted avg       0.37      0.38      0.36        16
+
 
 Tuning model for training period ending 2025-06-03 00:00:00...
 Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 50, 'subsample': 1.0}
@@ -288,7 +564,17 @@ Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 50, 'subsamp
 WFO Window: 2025-06-03 00:00:00 to 2025-06-18 00:00:00 Results:
 Total Return: 0.73% (vs Buy-and-Hold: -0.47%)
 Sharpe Ratio: 3.80
-Trade Count: 2
+Successful Trades: 2 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       1.00      0.33      0.50         6
+           0       0.50      0.17      0.25         6
+           1       0.33      1.00      0.50         4
+
+    accuracy                           0.44        16
+   macro avg       0.61      0.50      0.42        16
+weighted avg       0.65      0.44      0.41        16
+
 
 Tuning model for training period ending 2025-06-18 00:00:00...
 Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 50, 'subsample': 1.0}
@@ -296,7 +582,17 @@ Best params: {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 50, 'subsamp
 WFO Window: 2025-06-18 00:00:00 to 2025-07-03 00:00:00 Results:
 Total Return: 1.09% (vs Buy-and-Hold: 4.48%)
 Sharpe Ratio: 8.05
-Trade Count: 3
+Successful Trades: 3 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.50      0.17      0.25         6
+           0       0.36      1.00      0.53         4
+           1       1.00      0.50      0.67         6
+
+    accuracy                           0.50        16
+   macro avg       0.62      0.56      0.48        16
+weighted avg       0.65      0.50      0.48        16
+
 
 Tuning model for training period ending 2025-07-03 00:00:00...
 Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 50, 'subsample': 0.8}
@@ -304,19 +600,33 @@ Best params: {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 50, 'subsam
 WFO Window: 2025-07-03 00:00:00 to 2025-07-18 00:00:00 Results:
 Total Return: 0.00% (vs Buy-and-Hold: 7.61%)
 Sharpe Ratio: 0.00
-Trade Count: 0
+Successful Trades: 0 | Failed Trades: 0
+              precision    recall  f1-score   support
+
+          -1       0.25      0.50      0.33         4
+           0       0.50      0.50      0.50         4
+           1       0.75      0.38      0.50         8
+
+    accuracy                           0.44        16
+   macro avg       0.50      0.46      0.44        16
+weighted avg       0.56      0.44      0.46        16
+
 
 Average WFO Results:
-  Average Return: 0.39%
+  Average Return: 0.00
   Average Sharpe: 2.74
-  Average Trades per Period: 2
+  Average Successful: 1.60
+  Average Failed: 0.20
+  Average Accuracy: 0.41
+  Average Precision: 0.46
+  Average Recall: 0.45
 
 
 --- FINAL EXPERIMENT SUMMARY ---
-          return sharpe  trade_count
-timeframe                           
-5m         0.00%   0.00     0.000000
-15m        0.00%   0.00     0.000000
-1h         0.00%   0.00     0.000000
-4h        -0.02%  -0.50     0.666667
-1d         0.39%   2.74     1.800000
+          return sharpe successful failed accuracy precision recall
+timeframe                                                          
+5m         0.00%   0.00       0.00   0.00   50.79%    43.09% 40.71%
+15m        0.00%   0.00       0.00   0.00   46.15%    41.86% 40.24%
+1h         0.00%   0.00       0.00   0.00   35.04%    34.26% 34.12%
+4h        -0.02%  -0.50       0.33   0.33   40.48%    41.15% 39.80%
+1d         0.39%   2.74       1.60   0.20   41.25%    46.20% 44.50%

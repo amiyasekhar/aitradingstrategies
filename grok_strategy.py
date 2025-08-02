@@ -13,8 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()
 CRYPTOQUANT_API_KEY = os.getenv("CRYPTOQUANT_API_KEY")
 
-def run_wfo_for_timeframe(timeframe, params):
-    symbol = 'BTC/USDT'
+def run_wfo_for_timeframe(symbol, timeframe, params):
     start_date = (datetime.now() - timedelta(days=180)).strftime('%Y-%m-%d')
     fees = 0.001
     initial_capital = 1000.0
@@ -28,19 +27,36 @@ def run_wfo_for_timeframe(timeframe, params):
     take_profit_pct = params['take_profit_pct']
     prob_threshold = params['prob_threshold']
     atr_threshold = params['atr_threshold']
+    
+    asset_ticker = symbol.split('/')[0].lower()
 
-    METRIC_CONFIG = {
-        'netflow': {'path': 'exchange-flows/netflow', 'params': {'exchange': 'all_exchange'}, 'data_key': 'netflow_total'},
-        'active_addresses': {'path': 'network-data/addresses-count', 'params': {}, 'data_key': 'addresses_count_active'},
-        'whale_ratio': {'path': 'flow-indicator/exchange-whale-ratio', 'params': {'exchange': 'all_exchange'}, 'data_key': 'exchange_whale_ratio'}
-    }
+    if asset_ticker == 'btc':
+        METRIC_CONFIG = {
+            'netflow': {'path': 'exchange-flows/netflow', 'params': {'exchange': 'all_exchange'}, 'data_key': 'netflow_total'},
+            'active_addresses': {'path': 'network-data/addresses-count', 'params': {}, 'data_key': 'addresses_count_active'},
+            'whale_ratio': {'path': 'flow-indicator/exchange-whale-ratio', 'params': {'exchange': 'all_exchange'}, 'data_key': 'exchange_whale_ratio'}
+        }
+    elif asset_ticker == 'eth':
+        METRIC_CONFIG = {
+            'netflow': {'path': 'exchange-flows/netflow', 'params': {'exchange': 'all_exchange'}, 'data_key': 'netflow_total'},
+            'active_addresses': {'path': 'network-data/addresses-count', 'params': {}, 'data_key': 'addresses_count_active'},
+            'whale_activity': {'path': 'flow-indicator/exchange-inflow-supply-distribution', 'params': {'exchange': 'all_exchange'}, 'data_key': 'over_10k'}
+        }
+    elif asset_ticker == 'xrp':
+        METRIC_CONFIG = {
+            'exchange_supply_ratio': {'path': 'exchange-flows/supply-ratio', 'params': {'exchange': 'all_exchange'}, 'data_key': 'supply_ratio'},
+            'transactions_count': {'path': 'network-data/transactions-count', 'params': {}, 'data_key': 'transactions_count'},
+            'whale_movements': {'path': 'entity-flows/whale-movements', 'params': {}, 'data_key': 'volume'}
+        }
+    else:
+        METRIC_CONFIG = {}
 
     exchange = ccxt.binance({'enableRateLimit': True})
 
     def fetch_cryptoquant_data(metric_name, config, start_date):
         path = config['path']
-        print(f"Fetching CryptoQuant data for: {path}...")
-        api_url = f"https://api.cryptoquant.com/v1/btc/{path}"
+        print(f"Fetching CryptoQuant data for: {asset_ticker}/{path}...")
+        api_url = f"https://api.cryptoquant.com/v1/{asset_ticker}/{path}"
         headers = {'Authorization': f'Bearer {CRYPTOQUANT_API_KEY}'}
         formatted_date = start_date.replace('-', '')
         api_params = {'window': 'day', 'from': formatted_date}
@@ -81,14 +97,16 @@ def run_wfo_for_timeframe(timeframe, params):
     df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
     df.set_index('timestamp', inplace=True)
 
-    for metric_name, config in METRIC_CONFIG.items():
-        onchain_df = fetch_cryptoquant_data(metric_name, config, start_date)
-        if onchain_df is not None and not onchain_df.empty:
-            df = pd.merge(df, onchain_df, left_index=True, right_index=True, how='left')
-    
-    for col in METRIC_CONFIG.keys():
-        if col in df.columns:
-            df[col].fillna(method='ffill', inplace=True)
+    if METRIC_CONFIG:
+        for metric_name, config in METRIC_CONFIG.items():
+            onchain_df = fetch_cryptoquant_data(metric_name, config, start_date)
+            if onchain_df is not None and not onchain_df.empty:
+                df = pd.merge(df, onchain_df, left_index=True, right_index=True, how='left')
+        
+        for col in METRIC_CONFIG.keys():
+            if col in df.columns:
+                # --- FIXED: Apply ffill() only to the specific column ---
+                df[col] = df[col].ffill()
 
     df['return'] = df['close'].pct_change()
     df['log_return'] = np.log(df['close']).diff()
@@ -110,6 +128,10 @@ def run_wfo_for_timeframe(timeframe, params):
     
     if len(features) < 8: return None
 
+    for col in features:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+    df.dropna(inplace=True)
+
     def tune_xgboost(X, y):
         param_grid = {'n_estimators': [50, 100], 'max_depth': [3, 5], 'learning_rate': [0.01, 0.1], 'subsample': [0.8, 1.0]}
         model = XGBClassifier(random_state=42, eval_metric='mlogloss')
@@ -118,7 +140,6 @@ def run_wfo_for_timeframe(timeframe, params):
         print(f"Best params: {grid_search.best_params_}")
         return grid_search.best_estimator_
     
-    # --- UPDATED: Backtest function now calculates and returns all metrics ---
     def backtest(df, model, period_name):
         if df.empty: return (0,) * 8
         df = df.copy()
@@ -126,11 +147,9 @@ def run_wfo_for_timeframe(timeframe, params):
         probs = model.predict_proba(X)
         df['prob_up'] = probs[:, 2] 
         df['predicted'] = model.predict(X) - 1
-        
         position = 0; capital = initial_capital; entry_price = 0.0; trade_capital = 0.0; hold_counter = 0;
         portfolio_values = pd.Series(index=df.index, dtype=float).fillna(capital)
         trades = []
-
         for i in range(len(df)):
             current_price = df['close'].iloc[i]
             if position == 1:
@@ -143,8 +162,7 @@ def run_wfo_for_timeframe(timeframe, params):
                     if pnl_ratio >= take_profit_pct: return_on_trade = take_profit_pct
                     profit_loss = trade_capital * return_on_trade
                     capital += profit_loss - (trade_capital + profit_loss) * (fees / 2)
-                    position = 0
-                    trades.append(profit_loss)
+                    position = 0; trades.append(profit_loss)
             if position == 0:
                 if df['prob_up'].iloc[i] > prob_threshold and df['atr'].iloc[i] < atr_threshold:
                     position = 1; entry_price = current_price; trade_capital = capital * position_size_fraction;
@@ -153,30 +171,20 @@ def run_wfo_for_timeframe(timeframe, params):
                 unrealized_pnl = trade_capital * ((current_price / entry_price) - 1)
                 portfolio_values.iloc[i] = (capital - trade_capital) + trade_capital + unrealized_pnl
             else: portfolio_values.iloc[i] = capital
-                
         total_return = (portfolio_values.iloc[-1] - initial_capital) / initial_capital
         daily_returns = portfolio_values.pct_change().dropna()
         annualization_factor = 365 * 24 * 60 / (df.index.to_series().diff().mean().total_seconds()/60)
         sharpe = (daily_returns.mean() / daily_returns.std()) * np.sqrt(annualization_factor) if daily_returns.std() != 0 else 0
         bh_return = (df['close'].iloc[-1] / df['close'].iloc[0]) - 1
-        
-        successful_trades = sum(1 for t in trades if t > 0)
-        failed_trades = len(trades) - successful_trades
-        
+        successful_trades = sum(1 for t in trades if t > 0); failed_trades = len(trades) - successful_trades
         y_true = df['label']; y_pred = df['predicted']
-        accuracy = accuracy_score(y_true, y_pred)
-        precision = precision_score(y_true, y_pred, average='macro', zero_division=0)
+        accuracy = accuracy_score(y_true, y_pred); precision = precision_score(y_true, y_pred, average='macro', zero_division=0)
         recall = recall_score(y_true, y_pred, average='macro', zero_division=0)
-        
-        print(f"\n{period_name} Results:")
-        print(f"Total Return: {total_return:.2%} (vs Buy-and-Hold: {bh_return:.2%})")
-        print(f"Sharpe Ratio: {sharpe:.2f}")
-        print(f"Successful Trades: {successful_trades} | Failed Trades: {failed_trades}")
+        print(f"\n{period_name} Results:"); print(f"Total Return: {total_return:.2%} (vs Buy-and-Hold: {bh_return:.2%})")
+        print(f"Sharpe Ratio: {sharpe:.2f}"); print(f"Successful Trades: {successful_trades} | Failed Trades: {failed_trades}")
         print(classification_report(y_true, y_pred, zero_division=0))
-        
         return total_return, sharpe, successful_trades, failed_trades, accuracy, precision, recall
 
-    # WFO Loop
     start_dt = pd.to_datetime(start_date)
     end_dt = df.index.max()
     results = []
@@ -192,6 +200,9 @@ def run_wfo_for_timeframe(timeframe, params):
             print(f"Skipping window ending {train_end} due to missing data.")
             current_start += test_period; continue
         X_train = train_df[features]; y_train = train_df['label'] + 1
+        if y_train.value_counts().min() < 3:
+            print(f"Skipping window ending {train_end} due to too few samples in a class.")
+            current_start += test_period; continue
         print(f"\nTuning model for training period ending {train_end}...")
         model = tune_xgboost(X_train, y_train)
         ret, shp, s_trades, f_trades, acc, prec, rec = backtest(test_df, model, f"WFO Window: {train_end} to {test_end}")
@@ -201,7 +212,6 @@ def run_wfo_for_timeframe(timeframe, params):
     if results:
         avg_results = pd.DataFrame(results).mean().to_dict()
         print("\nAverage WFO Results:")
-        for key, val in avg_results.items():
-            print(f"  Average {key.replace('_', ' ').title()}: {val:.2f}")
+        for key, val in avg_results.items(): print(f"  Average {key.replace('_', ' ').title()}: {val:.2f}")
         return avg_results
     return None
